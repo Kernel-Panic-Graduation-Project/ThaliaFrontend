@@ -6,7 +6,7 @@ import HomeIndex from "./pages/home/Index";
 import FavoritesIndex from "./pages/favorites/Index";
 import LibraryIndex from "./pages/library/Index";
 import ProfileIndex from "./pages/profile/Index";
-import Login from "./pages/login/Index";
+import Login from "./pages/login/Login";
 import Signup from "./pages/login/Signup";
 import {NavigationContainer} from "@react-navigation/native";
 import {FontAwesome6} from "@expo/vector-icons";
@@ -17,6 +17,7 @@ import { UserProvider, useUser } from './context/UserContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useViewStyle } from './hooks/useViewStyle';
+import { useScreenOptions } from './hooks/useScreenOptions';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -65,6 +66,7 @@ const AppNavigator = () => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const viewStyle = useViewStyle();
+  const screenOptions = useScreenOptions();
 
   if (isLoading) {
     return (
@@ -109,11 +111,11 @@ const AppNavigator = () => {
         }
       }}
     >
-      <Stack.Navigator 
+      <Stack.Navigator
         initialRouteName={userData ? "MainApp" : "Login"}
         screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.colors.background }
+          ...screenOptions,
+          headerShown: false
         }}
       >
         {userData ? (
