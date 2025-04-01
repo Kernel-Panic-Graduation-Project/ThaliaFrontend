@@ -9,7 +9,7 @@ import apiClient from '../../utils/Backend';
 import i18n from '../../utils/i18n';
 import { useViewStyle } from '../../hooks/useViewStyle';
 
-const Profile = ({ route }) => {
+const Profile = ({ route, navigation }) => {
   const { t } = useTranslation();
   const { theme, toggleTheme } = useTheme();
   const viewStyle = useViewStyle();
@@ -137,7 +137,10 @@ const Profile = ({ route }) => {
                 <FontAwesome6 name="user" size={16} color={theme.colors.primaryText} /> {t("Account")}
               </Text>
               
-              <TouchableOpacity style={[styles.settingRow, { backgroundColor: theme.colors.surface }]}>
+              <TouchableOpacity 
+                style={[styles.settingRow, { backgroundColor: theme.colors.surface }]}
+                onPress={() => navigation.navigate('ChangePassword')}
+              >
                 <View style={styles.settingTextContainer}>
                   <FontAwesome6 
                     name="lock" 
@@ -156,7 +159,10 @@ const Profile = ({ route }) => {
                 />
               </TouchableOpacity>
               
-              <TouchableOpacity style={[styles.settingRow, { backgroundColor: theme.colors.surface }]}>
+              <TouchableOpacity 
+                style={[styles.settingRow, { backgroundColor: theme.colors.surface }]}
+                onPress={() => navigation.navigate('ChangeEmail')}
+              >
                 <View style={styles.settingTextContainer}>
                   <FontAwesome6 
                     name="envelope" 
