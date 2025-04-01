@@ -93,7 +93,10 @@ const Login = ({ navigation }) => {
           secureTextEntry
         />
 
-        <TouchableOpacity style={styles.forgotPassword}>
+        <TouchableOpacity 
+          style={styles.forgotPassword}
+          onPress={() => navigation.navigate('RequestPasswordReset')}
+        >
           <Text style={[styles.forgotPasswordText, { color: theme.colors.primary }]}>
             {t("Forgot Password?")}
           </Text>

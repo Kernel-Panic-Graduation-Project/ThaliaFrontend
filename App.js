@@ -18,6 +18,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useViewStyle } from './hooks/useViewStyle';
 import { useScreenOptions } from './hooks/useScreenOptions';
+import RequestPasswordReset from './pages/login/RequestPasswordReset';
+import ConfirmPasswordReset from './pages/login/ConfirmPasswordReset';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -126,6 +128,8 @@ const AppNavigator = () => {
           <>
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Signup" component={Signup} />
+            <Stack.Screen name="RequestPasswordReset" component={RequestPasswordReset} />
+            <Stack.Screen name="ConfirmPasswordReset" component={ConfirmPasswordReset} />
           </>
         )}
       </Stack.Navigator>
