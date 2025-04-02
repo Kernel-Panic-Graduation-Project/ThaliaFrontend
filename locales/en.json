@@ -120,5 +120,7 @@
   "Didn't receive the code? Request again": "Didn't receive the code? Request again",
   "Invalid email or token.": "Invalid email or token.",
   "Token has expired.": "Token has expired.",
-  "Email, token and new password are required.": "Email, token and new password are required."
+  "Email, token and new password are required.": "Email, token and new password are required.",
+  "Your favorite stories": "Your favorite stories",
+  "No favorite stories yet": "No favorite stories yet"
 }

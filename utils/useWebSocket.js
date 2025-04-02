@@ -96,10 +96,11 @@ export const useWebSocket = (url) => {
   };
   
   // Fetch all stories
-  const fetchStories = () => {
+  const fetchStories = (favoritesOnly = false) => {
     if (socketRef.current && isConnected) {
       sendMessage({ 
-        action: 'fetch_stories'
+        action: 'fetch_stories',
+        favorites_only: favoritesOnly
       });
     }
   };

@@ -3,7 +3,6 @@ import {ActivityIndicator, StyleSheet, View, Text} from 'react-native';
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import HomeIndex from "./pages/home/Index";
-import FavoritesIndex from "./pages/favorites/Index";
 import LibraryIndex from "./pages/library/Index";
 import ProfileIndex from "./pages/profile/Index";
 import Login from "./pages/login/Login";
@@ -46,10 +45,6 @@ const MainTabs = () => {
       <Tab.Screen name={"HomeTab"} component={HomeIndex} options={{
         tabBarIcon: ({color, size}) => <FontAwesome6 name="house" size={size} color={color} />,
         title: "Thalia",
-      }} />
-      <Tab.Screen name={"FavoritesTab"} component={FavoritesIndex} options={{
-        tabBarIcon: ({color, size}) => <FontAwesome6 name="heart" size={size} color={color} />,
-        title: t("Favorites"),
       }} />
       <Tab.Screen name={"LibraryTab"} component={LibraryIndex} options={{
         tabBarIcon: ({color, size}) => <FontAwesome6 name="book" size={size} color={color} />,

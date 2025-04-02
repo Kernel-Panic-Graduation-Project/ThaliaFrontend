@@ -78,7 +78,7 @@ const StoryDetail = ({ route, navigation }) => {
     setIsLoading(true);
     apiClient.get(`/api/story/${storyId}/`).then((response) => {
       setStory(response.data);
-      setIsFavorite(false);
+      setIsFavorite(response.data.favorited || false);
     }).catch((error) => {
       console.error('Failed to fetch story details:', error);
       Alert.alert(
@@ -188,13 +188,9 @@ const StoryDetail = ({ route, navigation }) => {
 
   const toggleFavorite = async () => {
     try {
-      // Here you would implement the API call to add/remove from favorites
-      // For now, we just toggle the state
       setIsFavorite(!isFavorite);
-      
-      // You'll need to implement the backend API for this
-      // const endpoint = isFavorite ? '/api/favorites/remove/' : '/api/favorites/add/';
-      // await apiClient.post(endpoint, { job_id: storyId });
+      const endpoint = isFavorite ? '/api/unlike-story/' : '/api/like-story/';
+      await apiClient.post(endpoint, { story_id: storyId });
     } catch (error) {
       console.error('Failed to update favorites:', error);
     }
@@ -455,9 +451,8 @@ const styles = StyleSheet.create({
   },
   audioPlayerContainer: {
     padding: 12,
-    borderTopWidth: 1,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
     // Shadow for iOS
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },

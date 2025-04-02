@@ -11,6 +11,7 @@ const Library = ({ route, navigation }) => {
   const { theme } = useTheme();
   const viewStyle = useViewStyle();
   const [isLoading, setIsLoading] = useState(true);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
   
   // Use WebSocket connection for fetching stories
   const { isConnected, stories, fetchStories } = useWebSocket('/jobs/');
@@ -18,16 +19,16 @@ const Library = ({ route, navigation }) => {
   // Fetch stories when component mounts and when connection status changes
   useEffect(() => {
     if (isConnected) {
-      fetchStories();
+      fetchStories(favoritesOnly);
       setIsLoading(false);
     } else {
       setIsLoading(true);
     }
-  }, [isConnected]);
+  }, [isConnected, favoritesOnly]);
 
   const handleRefresh = () => {
     if (isConnected) {
-      fetchStories();
+      fetchStories(favoritesOnly);
     }
   };
 
@@ -96,20 +97,54 @@ const Library = ({ route, navigation }) => {
           <Text style={[styles.storyDate, { color: theme.colors.secondaryText }]}>
             {new Date(item.created_at).toLocaleString()}
           </Text>
+          {item.favorited && (
+            <FontAwesome6 
+              name="heart" 
+              solid 
+              size={16} 
+              color={theme.colors.error} 
+            />
+          )}
         </View>
       </TouchableOpacity>
     );
+  };
+
+  const toggleFavoritesFilter = () => {
+    setFavoritesOnly(prev => !prev);
   };
 
   return (
     <View style={viewStyle}>
       <View style={styles.headerContainer}>
         <Text style={[styles.subtitle, { color: theme.colors.secondaryText }]}>
-          {t("All your stories in one place")}
+          {favoritesOnly 
+            ? t("Your favorite stories") 
+            : t("All your stories in one place")}
         </Text>
-        <TouchableOpacity onPress={handleRefresh} style={styles.refreshButton}>
-          <FontAwesome6 name="rotate-right" size={20} color={theme.colors.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity 
+            onPress={toggleFavoritesFilter} 
+            style={styles.filterButton}
+          >
+            <FontAwesome6 
+              name="heart" 
+              size={20} 
+              solid={favoritesOnly}
+              color={favoritesOnly ? theme.colors.error : theme.colors.secondary} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            onPress={handleRefresh} 
+            style={styles.refreshButton}
+          >
+            <FontAwesome6 
+              name="rotate-right" 
+              size={20} 
+              color={theme.colors.primary} 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
       
       {isLoading ? (
@@ -131,7 +166,7 @@ const Library = ({ route, navigation }) => {
         <View style={styles.emptyContainer}>
           <FontAwesome6 name="book" size={40} color={theme.colors.secondaryText} />
           <Text style={[styles.emptyText, { color: theme.colors.secondaryText }]}>
-            {t("No stories yet")}
+            {favoritesOnly ? t("No favorite stories yet") : t("No stories yet")}
           </Text>
           <TouchableOpacity 
             style={[styles.createButton, { backgroundColor: theme.colors.primary }]} 
@@ -153,6 +188,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 5,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterButton: {
+    padding: 10,
+    marginRight: 5,
   },
   subtitle: {
     fontSize: 16,

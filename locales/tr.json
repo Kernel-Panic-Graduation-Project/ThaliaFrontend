@@ -120,5 +120,7 @@
   "Didn't receive the code? Request again": "Kodu almadınız mı? Tekrar isteyin",
   "Invalid email or token.": "Geçersiz e-posta veya kod.",
   "Token has expired.": "Kodun süresi dolmuş.",
-  "Email, token and new password are required.": "E-posta, kod ve yeni şifre gereklidir."
+  "Email, token and new password are required.": "E-posta, kod ve yeni şifre gereklidir.",
+  "Your favorite stories": "Favori hikayelerin",
+  "No favorite stories yet": "Henüz favori hikaye yok"
 }
