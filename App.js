@@ -39,7 +39,6 @@ const MainTabs = () => {
         shadowOpacity: 0,
         borderTopColor: 'transparent',
       },
-      tabBarHideOnKeyboard: true,
       tabBarLabelPosition: 'beside-icon',
     }}>
       <Tab.Screen name={"HomeTab"} component={HomeIndex} options={{

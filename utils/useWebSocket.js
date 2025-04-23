@@ -84,16 +84,6 @@ export const useWebSocket = (url) => {
       socketRef.current.send(JSON.stringify(message));
     }
   };
-
-  // Track a specific job
-  const trackJob = (jobId) => {
-    if (socketRef.current && isConnected) {
-      sendMessage({ 
-        action: 'fetch_job',
-        job_id: jobId
-      });
-    }
-  };
   
   // Fetch all stories
   const fetchStories = (favoritesOnly = false) => {
@@ -121,7 +111,6 @@ export const useWebSocket = (url) => {
     currentJob,
     stories,
     sendMessage, 
-    trackJob,
     fetchStories,
     clearCurrentJob,
     clearMessages 

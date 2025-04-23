@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Alert, ScrollView, ActivityIndicator, Image, FlatList, TouchableOpacity } from 'react-native';
 import { useTranslation } from "react-i18next";
 import { FontAwesome6 } from "@expo/vector-icons";
 import ExpandableButton from "../../components/ExpandableButton";
@@ -16,21 +16,30 @@ const Home = () => {
   const viewStyle = useViewStyle();
   const [storyDescription, setStoryDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [latestJob, setLatestJob] = useState(null);
+  const [selectedCharacters, setSelectedCharacters] = useState([]);
+  const [selectedTheme, setSelectedTheme] = useState(null);
+  const [expandedSources, setExpandedSources] = useState({Disney: true});
+  const [showThemes, setShowThemes] = useState(false);
   
-  // Initialize WebSocket connection with tracking capabilities
-  const { isConnected, currentJob, trackJob } = useWebSocket('/jobs/');
-  
-  // Update the latest job whenever the tracked job changes
-  useEffect(() => {
-    setLatestJob(currentJob);
-  }, [currentJob]);
-
   const createStoryHandler = async () => {
-    if (!storyDescription) {
+    if (!storyDescription || storyDescription.trim() === "") {
       Alert.alert(
         t("Error"),
         t("Please enter a description for your story."),
+        [{ text: t("OK") }]
+      );
+      return;
+    } else if (selectedCharacters.length < 2) {
+      Alert.alert(
+        t("Error"),
+        t("Please select at least two characters."),
+        [{ text: t("OK") }]
+      );
+      return;
+    } else if (!selectedTheme) {
+      Alert.alert(
+        t("Error"),
+        t("Please select a theme for your story."),
         [{ text: t("OK") }]
       );
       return;
@@ -39,19 +48,18 @@ const Home = () => {
     setIsSubmitting(true);
     
     const payload = {
-      description: storyDescription
+      description: storyDescription,
+      theme: selectedTheme,
+      characters: selectedCharacters.length > 0 ? selectedCharacters : undefined
     };
     
     try {
       const response = await apiClient.post("/api/create-story/", payload);
       
-      // Start tracking this job if we got a job ID back
-      if (response.data && response.data.job_id) {
-        trackJob(response.data.job_id);
-      }
-      
       // Clear the form after successful submission
       setStoryDescription("");
+      setSelectedTheme(null);
+      setSelectedCharacters([]);
       
       // Notify user
       Alert.alert(
@@ -71,6 +79,85 @@ const Home = () => {
     }
   };
 
+  const characters = [
+    { name: "Alice", source: "Disney", image: require('../../assets/characters/Profile_-_Alice.webp') },
+    { name: "Anna", source: "Disney", image: require('../../assets/characters/Profile_-_Anna.webp') },
+    { name: "Ariel", source: "Disney", image: require('../../assets/characters/Profile_-_Ariel.webp') },
+    { name: "Asha", source: "Disney", image: require('../../assets/characters/Profile_-_Asha.webp') },
+    { name: "Aurora", source: "Disney", image: require('../../assets/characters/Profile_-_Aurora.webp') },
+    { name: "Belle", source: "Disney", image: require('../../assets/characters/Profile_-_Belle.webp') },
+    { name: "Chel", source: "Disney", image: require('../../assets/characters/Profile_-_Chel.webp') },
+    { name: "Cinderella", source: "Disney", image: require('../../assets/characters/Profile_-_Cinderella.webp') },
+    { name: "Dolores Madrigal", source: "Disney", image: require('../../assets/characters/Profile_-_Dolores_Madrigal.webp') },
+    { name: "Elsa", source: "Disney", image: require('../../assets/characters/Profile_-_Elsa.webp') },
+    { name: "Esmeralda", source: "Disney", image: require('../../assets/characters/Profile_-_Esmeralda.webp') },
+    { name: "Isabela Madrigal", source: "Disney", image: require('../../assets/characters/Profile_-_Isabela_Madrigal.webp') },
+    { name: "Jane Porter", source: "Disney", image: require('../../assets/characters/Profile_-_Jane_Porter.webp') },
+    { name: "Jasmine", source: "Disney", image: require('../../assets/characters/Profile_-_Jasmine.webp') },
+    { name: "Kida Nedakh", source: "Disney", image: require('../../assets/characters/Profile_-_Kida_Nedakh.webp') },
+    { name: "Megara", source: "Disney", image: require('../../assets/characters/Profile_-_Megara.webp') },
+    { name: "Merida", source: "Disney", image: require('../../assets/characters/Profile_-_Merida.webp') },
+    { name: "Mirabel Madrigal", source: "Disney", image: require('../../assets/characters/Profile_-_Mirabel_Madrigal.webp') },
+    { name: "Moana", source: "Disney", image: require('../../assets/characters/Profile_-_Moana.webp') },
+    { name: "Namaari", source: "Disney", image: require('../../assets/characters/Profile_-_Namaari.webp') },
+    { name: "Pocahontas", source: "Disney", image: require('../../assets/characters/Profile_-_Pocahontas.webp') },
+    { name: "Rapunzel", source: "Disney", image: require('../../assets/characters/Profile_-_Rapunzel.webp') },
+    { name: "Raya", source: "Disney", image: require('../../assets/characters/Profile_-_Raya.webp') },
+    { name: "Shank", source: "Disney", image: require('../../assets/characters/Profile_-_Shank.webp') },
+    { name: "Snow White", source: "Disney", image: require('../../assets/characters/Profile_-_Snow_White.webp') },
+    { name: "Tiana", source: "Disney", image: require('../../assets/characters/Profile_-_Tiana.webp') },
+    { name: "Vanellope", source: "Disney", image: require('../../assets/characters/Profile_-_Vanellope_Von_schweetz.webp') },
+  ];
+
+  const themes = [
+    "fantasy",
+    "sci-fi",
+    "medieval",
+    "pirates",
+    "space",
+    "jungle",
+    "underwater",
+    "superheroes",
+    "animals",
+    "magic school",
+    "circus",
+    "haunted house",
+    "fairy tale",
+    "farm life",
+    "outer space",
+    "prehistoric",
+    "robot world",
+    "time travel",
+    "winter wonderland",
+    "desert adventure",
+    "forest kingdom",
+    "lost island",
+    "dream world",
+    "toy land",
+    "sports",
+    "music",
+    "royalty",
+    "travel",
+    "holiday",
+    "school life"
+  ]
+
+  // First, group characters by source
+  const groupedCharacters = characters.reduce((groups, character) => {
+    const { source } = character;
+    if (!groups[source]) {
+      groups[source] = [];
+    }
+    groups[source].push(character);
+    return groups;
+  }, {});
+
+  // Convert to array format for rendering
+  const characterSources = Object.keys(groupedCharacters).map(source => ({
+    source,
+    characters: groupedCharacters[source]
+  }));
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'queued':
@@ -86,119 +173,211 @@ const Home = () => {
     }
   };
 
-  // Render job information
-  const renderJobInfo = () => {
-    const isLoading = !isConnected && !latestJob;
-    
-    if (isLoading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={[styles.loadingText, { color: theme.colors.secondaryText }]}>
-            {t("Loading your stories...")}
-          </Text>
-        </View>
-      );
-    }
-
-    if (!latestJob) {
-      return (
-        <View style={styles.emptyContainer}>
-          <FontAwesome6 name="book" size={40} color={theme.colors.secondaryText} />
-          <Text style={[styles.emptyText, { color: theme.colors.secondaryText }]}>
-            {t("No stories yet")}
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.jobContainer}>
-        <View style={[styles.jobCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-          <View style={styles.headerRow}>
-            <Text style={[styles.jobTitle, { color: theme.colors.primaryText }]}>{latestJob.title}</Text>
-            <View style={styles.statusContainer}>
-              {getStatusIcon(latestJob.status)}
-              <Text style={[styles.statusText, { color: theme.colors.secondaryText, marginLeft: 5 }]}>
-                {t(latestJob.status)}
-              </Text>
-            </View>
-          </View>
-          
-          {latestJob.status === 'queued' && latestJob.position !== undefined && (
-            <Text style={[styles.detail, { color: theme.colors.secondaryText }]}>
-              {t("Position in queue")}: {latestJob.position}
-            </Text>
-          )}
-          
-          {latestJob.status === 'completed' && latestJob.result && (
-            <Text style={[styles.detail, { color: theme.colors.primaryText }]}>
-              {typeof latestJob.result === 'object' 
-                ? JSON.stringify(latestJob.result) 
-                : String(latestJob.result)}
-            </Text>
-          )}
-        </View>
-      </View>
+  const handleCharacterPress = (name) => {
+    setSelectedCharacters((prev) =>
+      prev.includes(name)
+        ? prev.filter((n) => n !== name) // Deselect if already selected
+        : [...prev, name] // Select if not selected
     );
   };
 
+  const handleThemeSelect = (theme) => {
+    setSelectedTheme(theme === selectedTheme ? null : theme);
+  };
+
+  // Add this function with your other handler functions
+  const toggleSourceExpansion = (source) => {
+    setExpandedSources(prev => ({
+      ...prev,
+      [source]: !prev[source]
+    }));
+  };
+
   return (
-    <ScrollView style={viewStyle} contentContainerStyle={{ flexGrow: 1 }}>
-      <View>
-        <Text style={[styles.title, { color: theme.colors.primaryText }]}>
-          {t("Hello") + ", " + (userData?.username || t("Young Creator"))}
-        </Text>
-        <Text style={[styles.subtitleText, { color: theme.colors.secondaryText }]}>
-          {t("Let's create an amazing story together!")}
-        </Text>
-        
-        <View style={styles.formContainer}>
-          <Text style={[styles.subtitle, { color: theme.colors.primaryText }]}>
-            {t("What do you want the story to be like")}?
+    <View style={{ flex: 1 }}>
+      <ScrollView style={viewStyle} contentContainerStyle={{ flexGrow: 1, paddingBottom: 80 }}>
+        <View>
+          <Text style={[styles.title, { color: theme.colors.primaryText }]}>
+            {t("Hello") + ", " + (userData?.username || t("Young Creator"))}
           </Text>
-          <TextInput
-            multiline={true}
-            placeholder={t("Enter your story description here") + "..."}
-            placeholderTextColor={theme.colors.secondaryText}
-            style={[styles.input, styles.textArea, { color: theme.colors.primaryText, borderColor: theme.colors.border, backgroundColor: theme.colors.surface }]}
-            onChangeText={setStoryDescription}
-            value={storyDescription}
-          />
-
-          <ExpandableButton 
-            style={[styles.createStoryButton, { backgroundColor: theme.colors.primary }]} 
-            onPress={createStoryHandler}
-          >
-            <Text style={[styles.createStoryButtonText, { color: theme.colors.primaryTextInverted }]}>
-              <FontAwesome6 name={"wand-magic-sparkles"} size={20} /> {isSubmitting ? t("Creating...") : t("Create My Story")}
+          <Text style={[styles.subtitleText, { color: theme.colors.secondaryText }]}>
+            {t("Let's create an amazing story together!")}
+          </Text>
+          
+          <View style={styles.formContainer}>
+            <Text style={[styles.subtitle, { color: theme.colors.primaryText }]}>
+              {t("What do you want the story to be like")}?
             </Text>
-          </ExpandableButton>
+            <TextInput
+              multiline={true}
+              placeholder={t("Enter your story description here") + "..."}
+              placeholderTextColor={theme.colors.secondaryText}
+              style={[styles.input, styles.textArea, { 
+                color: theme.colors.primaryText, 
+                borderColor: theme.colors.border, 
+                backgroundColor: theme.colors.surface 
+              }]}
+              onChangeText={setStoryDescription}
+              value={storyDescription}
+            />
+
+            {/* Theme Selection Pane */}
+            <Text style={[styles.subtitle, { color: theme.colors.primaryText, marginTop: 10 }]}>
+              {t("Choose a story theme")}
+            </Text>
+            
+            <View style={[styles.themeContainer, { borderColor: theme.colors.border }]}>
+              <TouchableOpacity 
+                style={[
+                  styles.themeTitleContainer, 
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    borderBottomWidth: showThemes ? 0 : 1,
+                    borderBottomLeftRadius: showThemes ? 0 : 8,
+                    borderBottomRightRadius: showThemes ? 0 : 8
+                  }
+                ]}
+                onPress={() => setShowThemes(!showThemes)}
+              >
+                <Text style={[styles.sourceTitle, { color: theme.colors.primaryText }]}>
+                  {selectedTheme ? t(selectedTheme).charAt(0).toUpperCase() + t(selectedTheme).slice(1) : t("Choose a theme")}
+                </Text>
+                <FontAwesome6 
+                  name={showThemes ? "chevron-up" : "chevron-down"} 
+                  size={16} 
+                  color={theme.colors.secondaryText} 
+                />
+              </TouchableOpacity>
+              
+              {showThemes && (
+                <View style={[
+                  styles.themesGridContainer, 
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    borderTopWidth: 0,
+                  }
+                ]}>
+                  <View style={styles.themesGrid}>
+                    {themes.map((item) => (
+                      <TouchableOpacity
+                        key={item}
+                        style={[
+                          styles.themeItem,
+                          { 
+                            borderColor: selectedTheme === item ? theme.colors.primary : theme.colors.border,
+                            backgroundColor: selectedTheme === item ? `${theme.colors.primary}20` : theme.colors.surface
+                          }
+                        ]}
+                        onPress={() => handleThemeSelect(item)}
+                      >
+                        <Text style={[
+                          styles.themeItemText, 
+                          { 
+                            color: selectedTheme === item ? theme.colors.primary : theme.colors.primaryText,
+                            fontWeight: selectedTheme === item ? '700' : '500'
+                          }
+                        ]}>
+                          {t(item).charAt(0).toUpperCase() + t(item).slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Character Selection Pane */}
+            <Text style={[styles.subtitle, { color: theme.colors.primaryText, marginTop: 10 }]}>
+              {t("Choose your characters")}
+            </Text>
+            
+            {characterSources.map(sourceGroup => (
+              <View key={sourceGroup.source} style={[styles.sourceContainer, { borderColor: theme.colors.border }]}>
+                <TouchableOpacity 
+                  style={[
+                    styles.sourceTitleContainer, 
+                    { 
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                      borderWidth: 1,
+                      borderBottomWidth: expandedSources[sourceGroup.source] ? 0 : 1,
+                      borderBottomLeftRadius: expandedSources[sourceGroup.source] ? 0 : 8,
+                      borderBottomRightRadius: expandedSources[sourceGroup.source] ? 0 : 8
+                    }
+                  ]}
+                  onPress={() => toggleSourceExpansion(sourceGroup.source)}
+                >
+                  <Text style={[styles.sourceTitle, { color: theme.colors.primaryText }]}>
+                    {sourceGroup.source}
+                  </Text>
+                  <FontAwesome6 
+                    name={expandedSources[sourceGroup.source] ? "chevron-up" : "chevron-down"} 
+                    size={16} 
+                    color={theme.colors.secondaryText} 
+                  />
+                </TouchableOpacity>
+                
+                {expandedSources[sourceGroup.source] && (
+                  <View style={[
+                    styles.charactersContainer, 
+                    { 
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                      borderWidth: 1,
+                      borderTopWidth: 0,
+                    }
+                  ]}>
+                    <FlatList
+                      data={sourceGroup.characters}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      keyExtractor={(item) => item.name}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[
+                            styles.characterItem,
+                            { 
+                              borderColor: selectedCharacters.includes(item.name) ? theme.colors.primary : 'transparent',
+                              backgroundColor: selectedCharacters.includes(item.name) ? `${theme.colors.primary}20` : 'transparent'
+                            }
+                          ]}
+                          onPress={() => handleCharacterPress(item.name)}
+                        >
+                          <Image source={item.image} style={styles.characterImage} />
+                          <Text style={[
+                            styles.characterName, 
+                            { 
+                              color: selectedCharacters.includes(item.name) ? theme.colors.primary : theme.colors.primaryText,
+                            }
+                          ]}>
+                            {item.name}
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    />
+                  </View>
+                )}
+              </View>
+            ))}
+          </View>
         </View>
-
-        {/* Display the current story being created */}
-        {latestJob && (
-          <>
-            <Text style={[styles.subtitle, { color: theme.colors.primaryText, marginTop: 20 }]}>
-              {t("Current Story Creation in Progress")}
-            </Text>
-            {renderJobInfo()}
-          </>
-        )}
-        
-        {/* Display message when there's no story being created */}
-        {!latestJob && (
-          <>
-            <Text style={[styles.subtitle, { color: theme.colors.primaryText, marginTop: 20 }]}>
-              {t("No Story Creation in Progress")}
-            </Text>
-            <Text style={[styles.subtitleText, { color: theme.colors.secondaryText }]}>
-              {t("Create a story using the form above. You can see your completed stories in the Library.")}
-            </Text>
-          </>
-        )}
+      </ScrollView>
+      
+      <View style={[styles.buttonContainer, { backgroundColor: theme.colors.background }]}>
+        <ExpandableButton 
+          style={[styles.createStoryButton, { backgroundColor: theme.colors.primary }]} 
+          onPress={createStoryHandler}
+        >
+          <Text style={[styles.createStoryButtonText, { color: theme.colors.primaryTextInverted }]}>
+            <FontAwesome6 name={"wand-magic-sparkles"} size={20} /> {isSubmitting ? t("Creating...") : t("Create My Story")}
+          </Text>
+        </ExpandableButton>
       </View>
-    </ScrollView>
+    </View>
   );
 };
 
@@ -231,11 +410,18 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top'
   },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 15,
+    paddingBottom: 25,
+  },
   createStoryButton: {
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 20,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -259,7 +445,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
   },
-  // JobsList component styles integrated directly
   jobContainer: {
     marginTop: 20,
   },
@@ -307,7 +492,85 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     marginTop: 10,
-  }
+  },
+  sourceContainer: {
+    marginBottom: 15,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  sourceTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  charactersContainer: {
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    paddingVertical: 8,
+  },
+  sourceTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  characterItem: {
+    alignItems: 'center',
+    padding: 6,
+    marginHorizontal: 2,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  characterImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+  },
+  characterName: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  themeContainer: {
+    marginBottom: 15,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  themeTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  themesGridContainer: {
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
+    padding: 12,
+  },
+  themesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  themeItem: {
+    width: '31%', // Slightly less than 1/3 to account for margins
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 5,
+    margin: '1%',
+    borderRadius: 10,
+    borderWidth: 1,
+    minHeight: 45,
+    marginBottom: 10,
+  },
+  themeItemText: {
+    fontSize: 12,
+    textAlign: 'center',
+  },
 });
 
 export default Home;
