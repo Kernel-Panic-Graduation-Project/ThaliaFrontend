@@ -18,6 +18,31 @@ import PagerView from 'react-native-pager-view';
 import CustomHeaderButton from '../../components/CustomHeaderButton';
 import { useViewStyle } from '../../hooks/useViewStyle';
 
+const splitTextIntoWords = (text) => {
+  return text.match(/\S+|\s+/g) || [];
+};
+
+// Create a memoized highlighted text component
+const HighlightedText = React.memo(({ text, highlightedWordCount, textStyle, highlightedTextStyle }) => {
+  const words = splitTextIntoWords(text);
+  
+  return (
+    <Text style={textStyle}>
+      {words.map((word, index) => (
+        <Text
+          key={index}
+          style={{
+            backgroundColor: index < highlightedWordCount ? highlightedTextStyle.backgroundColor : 'transparent',
+            color: textStyle.color,
+          }}
+        >
+          {word}
+        </Text>
+      ))}
+    </Text>
+  );
+});
+
 const StoryDetail = ({ route, navigation }) => {
   const { storyId } = route.params;
   const { t } = useTranslation();
@@ -33,11 +58,12 @@ const StoryDetail = ({ route, navigation }) => {
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+  const [highlightedWordCounts, setHighlightedWordCounts] = useState({});
   
   // Track current playing section
   const [currentSectionIndex, setCurrentSectionIndex] = useState(null);
   const pagerRef = useRef(null);
-  
+    
   // Clean up sound when component unmounts
   useEffect(() => {
     return sound
@@ -120,16 +146,18 @@ const StoryDetail = ({ route, navigation }) => {
         setIsPlaying(false);
       }
       
+      setCurrentSectionIndex(sectionIndex);
+
       // Load the new sound
+      // Pass the sectionIndex as a parameter to the onPlaybackStatusUpdate
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: `data:audio/mp3;base64,${audioBase64}` },
         { shouldPlay: true },
-        status => onPlaybackStatusUpdate(status)
+        (status) => onPlaybackStatusUpdate(status, sectionIndex)
       );
       
       setSound(newSound);
       setIsPlaying(true);
-      setCurrentSectionIndex(sectionIndex);
     } catch (error) {
       console.error('Error loading audio:', error);
       Alert.alert(
@@ -143,17 +171,36 @@ const StoryDetail = ({ route, navigation }) => {
   };
   
   // Handle playback status updates
-  const onPlaybackStatusUpdate = (status) => {
-    if (status.isLoaded) {
-      setPlaybackPosition(status.positionMillis);
-      setPlaybackDuration(status.durationMillis || 0);
+  const onPlaybackStatusUpdate = (status, sectionIdx) => {
+    if (!status.isLoaded) return;
+    
+    setPlaybackPosition(status.positionMillis);
+    setPlaybackDuration(status.durationMillis || 0);
+    
+    // Use the passed section index parameter instead of the state variable
+    if (sectionIdx !== undefined && story?.text_sections[sectionIdx]) {
+      const currentText = story.text_sections[sectionIdx];
+      const words = splitTextIntoWords(currentText);
+      const totalWords = words.length;
       
-      if (status.didJustFinish) {
-        setIsPlaying(false);
+      // Calculate proportion of audio played
+      const proportion = status.positionMillis / (status.durationMillis || 1);
+      
+      // Calculate words to highlight
+      const highlightCount = Math.floor(totalWords * proportion);
+      
+      // Update state with the passed section index
+      setHighlightedWordCounts(prev => ({
+        ...prev,
+        [sectionIdx]: highlightCount
+      }));
+    }
+    
+    if (status.didJustFinish) {
+      setIsPlaying(false);
 
-        if (currentSectionIndex !== null && story && currentSectionIndex < story.text_sections.length - 1) {
-          goToNextSection();
-        }
+      if (currentSectionIndex !== null && story && currentSectionIndex < story.text_sections.length - 1) {
+        goToNextSection();
       }
     }
   };
@@ -242,15 +289,16 @@ const StoryDetail = ({ route, navigation }) => {
         setIsPlaying(false);
       }
       
-      // Load the new sound but don't play it
+      setCurrentSectionIndex(sectionIndex);
+      
+      // Pass sectionIndex to the callback
       const { sound: newSound } = await Audio.Sound.createAsync(
         { uri: `data:audio/mp3;base64,${audioBase64}` },
         { shouldPlay: false },
-        status => onPlaybackStatusUpdate(status)
+        (status) => onPlaybackStatusUpdate(status, sectionIndex)
       );
       
       setSound(newSound);
-      setCurrentSectionIndex(sectionIndex);
       
       // Get and set the duration immediately
       const status = await newSound.getStatusAsync();
@@ -282,6 +330,12 @@ const StoryDetail = ({ route, navigation }) => {
     
     setCurrentSectionIndex(newIndex);
     setPlaybackPosition(0);
+    
+    // Reset highlighting for the new section
+    setHighlightedWordCounts(prev => ({
+      ...prev,
+      [newIndex]: 0
+    }));
     
     // Automatically load the audio for this section
     if (story?.audios && story.audios[newIndex]) {
@@ -320,9 +374,12 @@ const StoryDetail = ({ route, navigation }) => {
           {story.text_sections.map((textSection, index) => (
             <View key={`section-${index}`} style={styles.pageContainer}>
               <ScrollView style={styles.scrollView}>
-                <Text style={[styles.storyContent, { color: theme.colors.primaryText }]}>
-                  {textSection}
-                </Text>
+                <HighlightedText
+                  text={textSection}
+                  highlightedWordCount={highlightedWordCounts[index] || 0}
+                  textStyle={{...styles.storyContent, color: theme.colors.primaryText}}
+                  highlightedTextStyle={{ backgroundColor: theme.colors.primary }}
+                />
               </ScrollView>
             </View>
           ))}
@@ -350,17 +407,15 @@ const StoryDetail = ({ route, navigation }) => {
             
             <View style={styles.audioProgressContainer}>
               <View 
-                style={[
-                  styles.progressBar, 
+                style={[styles.progressBar, 
                   { backgroundColor: theme.colors.border }
                 ]}
               >
                 <View 
-                  style={[
-                    styles.progressFilled, 
+                  style={[styles.progressFilled, 
                     { 
                       backgroundColor: theme.colors.primary,
-                      width: playbackDuration > 0 ? `${(playbackPosition / playbackDuration) * 100}%` : 0 
+                      width: playbackDuration > 0 ? `${(playbackPosition / playbackDuration) * 100}%` : '0%' 
                     }
                   ]} 
                 />
@@ -399,6 +454,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     textAlign: 'center',
     marginBottom: 20,
+  },
+  progressBarWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  progressBarSegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    marginHorizontal: 2,
   },
   playerControls: {
     flexDirection: 'row',
