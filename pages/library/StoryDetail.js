@@ -23,22 +23,33 @@ const splitTextIntoWords = (text) => {
 };
 
 // Create a memoized highlighted text component
-const HighlightedText = React.memo(({ text, highlightedWordCount, textStyle, highlightedTextStyle }) => {
+const HighlightedText = React.memo(({ text, highlightedLetterCount, textStyle, highlightedTextStyle }) => {
   const words = splitTextIntoWords(text);
+  let letterCount = 0;
   
   return (
     <Text style={textStyle}>
-      {words.map((word, index) => (
-        <Text
-          key={index}
-          style={{
-            backgroundColor: index < highlightedWordCount ? highlightedTextStyle.backgroundColor : 'transparent',
-            color: textStyle.color,
-          }}
-        >
-          {word}
-        </Text>
-      ))}
+      {words.map((word, index) => {
+        // Track the starting letter position of this word
+        const wordStartsAt = letterCount;
+        // Update the running letter count
+        letterCount += word.length;
+        
+        // Highlight the word if its first letter is included in the highlighted range
+        const shouldHighlight = wordStartsAt < highlightedLetterCount;
+        
+        return (
+          <Text
+            key={index}
+            style={{
+              backgroundColor: shouldHighlight ? highlightedTextStyle.backgroundColor : 'transparent',
+              color: textStyle.color,
+            }}
+          >
+            {word}
+          </Text>
+        );
+      })}
     </Text>
   );
 });
@@ -58,7 +69,7 @@ const StoryDetail = ({ route, navigation }) => {
   const [playbackPosition, setPlaybackPosition] = useState(0);
   const [playbackDuration, setPlaybackDuration] = useState(0);
   const [isLoadingAudio, setIsLoadingAudio] = useState(false);
-  const [highlightedWordCounts, setHighlightedWordCounts] = useState({});
+  const [highlightedLetterCounts, setHighlightedLetterCounts] = useState({});
   
   // Track current playing section
   const [currentSectionIndex, setCurrentSectionIndex] = useState(null);
@@ -180,19 +191,18 @@ const StoryDetail = ({ route, navigation }) => {
     // Use the passed section index parameter instead of the state variable
     if (sectionIdx !== undefined && story?.text_sections[sectionIdx]) {
       const currentText = story.text_sections[sectionIdx];
-      const words = splitTextIntoWords(currentText);
-      const totalWords = words.length;
+      const totalLetters = currentText.length;
       
       // Calculate proportion of audio played
       const proportion = status.positionMillis / (status.durationMillis || 1);
       
-      // Calculate words to highlight
-      const highlightCount = Math.floor(totalWords * proportion);
+      // Calculate letters to highlight
+      const highlightLetterCount = Math.floor(totalLetters * proportion);
       
       // Update state with the passed section index
-      setHighlightedWordCounts(prev => ({
+      setHighlightedLetterCounts(prev => ({
         ...prev,
-        [sectionIdx]: highlightCount
+        [sectionIdx]: highlightLetterCount
       }));
     }
     
@@ -332,7 +342,7 @@ const StoryDetail = ({ route, navigation }) => {
     setPlaybackPosition(0);
     
     // Reset highlighting for the new section
-    setHighlightedWordCounts(prev => ({
+    setHighlightedLetterCounts(prev => ({
       ...prev,
       [newIndex]: 0
     }));
@@ -376,7 +386,7 @@ const StoryDetail = ({ route, navigation }) => {
               <ScrollView style={styles.scrollView}>
                 <HighlightedText
                   text={textSection}
-                  highlightedWordCount={highlightedWordCounts[index] || 0}
+                  highlightedLetterCount={highlightedLetterCounts[index] || 0}
                   textStyle={{...styles.storyContent, color: theme.colors.primaryText}}
                   highlightedTextStyle={{ backgroundColor: theme.colors.primary }}
                 />
