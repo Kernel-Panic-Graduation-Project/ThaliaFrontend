@@ -181,7 +181,60 @@ const Profile = ({ route, navigation }) => {
                 />
               </TouchableOpacity>
             </View>
-            
+
+            <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+
+            {/* Content Management Section */}
+            <View style={styles.settingsContainer}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.primaryText }]}>
+                <FontAwesome6 name="wand-magic-sparkles" size={16} color={theme.colors.primaryText} /> {t("Content Management")}
+              </Text>
+              
+              <TouchableOpacity 
+                style={[styles.settingRow, { backgroundColor: theme.colors.surface }]}
+                onPress={() => navigation.navigate('ManageCharacters')}
+              >
+                <View style={styles.settingTextContainer}>
+                  <FontAwesome6 
+                    name="users" 
+                    size={18} 
+                    color={theme.colors.primary} 
+                    style={styles.settingIcon}
+                  />
+                  <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>
+                    {t("Manage Your Characters")}
+                  </Text>
+                </View>
+                <FontAwesome6 
+                  name="chevron-right" 
+                  size={16} 
+                  color={theme.colors.secondaryText} 
+                />
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.settingRow, { backgroundColor: theme.colors.surface }]}
+                onPress={() => navigation.navigate('ManageVoices')}
+              >
+                <View style={styles.settingTextContainer}>
+                  <FontAwesome6 
+                    name="microphone" 
+                    size={18} 
+                    color={theme.colors.info} 
+                    style={styles.settingIcon}
+                  />
+                  <Text style={[styles.settingText, { color: theme.colors.primaryText }]}>
+                    {t("Manage Your Voices")}
+                  </Text>
+                </View>
+                <FontAwesome6 
+                  name="chevron-right" 
+                  size={16} 
+                  color={theme.colors.secondaryText} 
+                />
+              </TouchableOpacity>
+            </View>
+
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             
             {/* Logout Button */}

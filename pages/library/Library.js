@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, RefreshControl } from 'react-native';
 import { useTranslation } from "react-i18next";
 import { FontAwesome6 } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -12,8 +12,7 @@ const Library = ({ route, navigation }) => {
   const viewStyle = useViewStyle();
   const [isLoading, setIsLoading] = useState(true);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
-  
-  // Use WebSocket connection for fetching stories
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { isConnected, stories, fetchStories } = useWebSocket('/jobs/');
 
   // Fetch stories when component mounts and when connection status changes
@@ -32,15 +31,31 @@ const Library = ({ route, navigation }) => {
     }
   };
 
+  const onRefresh = () => {
+    setIsRefreshing(true);
+    handleRefresh();
+    setIsRefreshing(false);
+  };
+
   const navigateToStoryDetail = (story) => {
-    // Only navigate if the story is completed
     if (story.status === 'completed') {
       navigation.navigate('Story', { storyId: story.story_id });
-    } else {
-      // Optionally show an alert or toast notification that the story isn't ready yet
+    } else if (story.status === 'failed') {
       Alert.alert(
-        t("Story Not Ready"),
-        t("This story is still being created. Please wait until it's completed."),
+        t("Your story has failed"),
+        t("Your story has failed. Please try again."),
+        [{ text: t("OK") }]
+      );
+    } else if (story.status === 'queued') {
+      Alert.alert(
+        t("Your story is in queue"),
+        t("Your story is still in the queue. Please wait until it's processed."),
+        [{ text: t("OK") }]
+      );
+    } else {
+      Alert.alert(
+        t("Your story is not ready"),
+        t("Your story is still being created. Please wait until it's completed."),
         [{ text: t("OK") }]
       );
     }
@@ -51,7 +66,8 @@ const Library = ({ route, navigation }) => {
       switch (status) {
         case 'queued':
           return <FontAwesome6 name="clock" size={16} color={theme.colors.warning} />;
-        case 'processing':
+        case 'generating_story':
+        case 'generating_audio':
           return <ActivityIndicator size="small" color={theme.colors.primary} />;
         case 'completed':
           return <FontAwesome6 name="check-circle" size={16} color={theme.colors.success} />;
@@ -115,7 +131,7 @@ const Library = ({ route, navigation }) => {
   };
 
   return (
-    <View style={viewStyle}>
+    <View style={[viewStyle, { paddingBottom: 0 }]}>
       <View style={styles.headerContainer}>
         <Text style={[styles.subtitle, { color: theme.colors.secondaryText }]}>
           {favoritesOnly 
@@ -127,7 +143,7 @@ const Library = ({ route, navigation }) => {
             onPress={toggleFavoritesFilter} 
             style={styles.filterButton}
           >
-            <FontAwesome6 
+            <FontAwesome6
               name="heart" 
               size={20} 
               solid={favoritesOnly}
@@ -159,8 +175,14 @@ const Library = ({ route, navigation }) => {
           data={stories}
           renderItem={renderStoryItem}
           keyExtractor={(item) => item.job_id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              colors={[theme.colors.primary]}
+              tintColor={theme.colors.primary}
+            />
+          }
         />
       ) : (
         <View style={styles.emptyContainer}>
@@ -202,9 +224,6 @@ const styles = StyleSheet.create({
   },
   refreshButton: {
     padding: 10,
-  },
-  listContent: {
-    paddingBottom: 20,
   },
   storyCard: {
     padding: 16,

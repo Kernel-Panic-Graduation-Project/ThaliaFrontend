@@ -1,5 +1,5 @@
 import {StatusBar} from 'expo-status-bar';
-import {ActivityIndicator, StyleSheet, View, Text} from 'react-native';
+import {StyleSheet} from 'react-native';
 import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import HomeIndex from "./pages/home/Index";
@@ -19,6 +19,7 @@ import { useViewStyle } from './hooks/useViewStyle';
 import { useScreenOptions } from './hooks/useScreenOptions';
 import RequestPasswordReset from './pages/login/RequestPasswordReset';
 import ConfirmPasswordReset from './pages/login/ConfirmPasswordReset';
+import Loading from "./components/Loading";
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -39,6 +40,7 @@ const MainTabs = () => {
         shadowOpacity: 0,
         borderTopColor: 'transparent',
       },
+      animation: 'fade',
       tabBarLabelPosition: 'beside-icon',
     }}>
       <Tab.Screen name={"HomeTab"} component={HomeIndex} options={{
@@ -66,12 +68,7 @@ const AppNavigator = () => {
 
   if (isLoading) {
     return (
-      <View style={[viewStyle, styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
-        <Text style={[styles.loadingText, { color: theme.colors.secondaryText }]}>
-          {t("Loading...")}
-        </Text>
-      </View>
+      <Loading />
     );
   }
 
@@ -154,14 +151,5 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
   },
 });

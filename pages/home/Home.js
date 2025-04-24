@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, Alert, ScrollView, ActivityIndicator, Image, FlatList, TouchableOpacity } from 'react-native';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TextInput, Alert, ScrollView, Image, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from "react-i18next";
 import { FontAwesome6 } from "@expo/vector-icons";
 import ExpandableButton from "../../components/ExpandableButton";
 import { useTheme } from "../../context/ThemeContext";
 import apiClient from '../../utils/Backend';
 import { useUser } from '../../context/UserContext';
-import { useWebSocket } from '../../utils/useWebSocket';
 import { useViewStyle } from '../../hooks/useViewStyle';
 
 const Home = () => {
@@ -16,9 +15,13 @@ const Home = () => {
   const viewStyle = useViewStyle();
   const [storyDescription, setStoryDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingThemes, setIsLoadingThemes] = useState(true);
+  const [themes, setThemes] = useState([]);
+  const [isLoadingCharacters, setIsLoadingCharacters] = useState(true);
+  const [characters, setCharacters] = useState([{ name: "Create Yourself", source: "Your Characters", image: null }]);
   const [selectedCharacters, setSelectedCharacters] = useState([]);
   const [selectedTheme, setSelectedTheme] = useState(null);
-  const [expandedSources, setExpandedSources] = useState({Disney: true});
+  const [expandedSources, setExpandedSources] = useState({});
   const [showThemes, setShowThemes] = useState(false);
   
   const createStoryHandler = async () => {
@@ -33,6 +36,13 @@ const Home = () => {
       Alert.alert(
         t("Error"),
         t("Please select at least two characters."),
+        [{ text: t("OK") }]
+      );
+      return;
+    }  else if (selectedCharacters.length > 5) {
+      Alert.alert(
+        t("Error"),
+        t("Please select no more than five characters."),
         [{ text: t("OK") }]
       );
       return;
@@ -64,7 +74,7 @@ const Home = () => {
       // Notify user
       Alert.alert(
         t("Success"),
-        t("Your story is being created! You can track its progress below."),
+        t("Your story is being created! You can track its progress from your library."),
         [{ text: t("OK") }]
       );
     } catch (error) {
@@ -79,68 +89,58 @@ const Home = () => {
     }
   };
 
-  const characters = [
-    { name: "Alice", source: "Disney", image: require('../../assets/characters/Profile_-_Alice.webp') },
-    { name: "Anna", source: "Disney", image: require('../../assets/characters/Profile_-_Anna.webp') },
-    { name: "Ariel", source: "Disney", image: require('../../assets/characters/Profile_-_Ariel.webp') },
-    { name: "Asha", source: "Disney", image: require('../../assets/characters/Profile_-_Asha.webp') },
-    { name: "Aurora", source: "Disney", image: require('../../assets/characters/Profile_-_Aurora.webp') },
-    { name: "Belle", source: "Disney", image: require('../../assets/characters/Profile_-_Belle.webp') },
-    { name: "Chel", source: "Disney", image: require('../../assets/characters/Profile_-_Chel.webp') },
-    { name: "Cinderella", source: "Disney", image: require('../../assets/characters/Profile_-_Cinderella.webp') },
-    { name: "Dolores Madrigal", source: "Disney", image: require('../../assets/characters/Profile_-_Dolores_Madrigal.webp') },
-    { name: "Elsa", source: "Disney", image: require('../../assets/characters/Profile_-_Elsa.webp') },
-    { name: "Esmeralda", source: "Disney", image: require('../../assets/characters/Profile_-_Esmeralda.webp') },
-    { name: "Isabela Madrigal", source: "Disney", image: require('../../assets/characters/Profile_-_Isabela_Madrigal.webp') },
-    { name: "Jane Porter", source: "Disney", image: require('../../assets/characters/Profile_-_Jane_Porter.webp') },
-    { name: "Jasmine", source: "Disney", image: require('../../assets/characters/Profile_-_Jasmine.webp') },
-    { name: "Kida Nedakh", source: "Disney", image: require('../../assets/characters/Profile_-_Kida_Nedakh.webp') },
-    { name: "Megara", source: "Disney", image: require('../../assets/characters/Profile_-_Megara.webp') },
-    { name: "Merida", source: "Disney", image: require('../../assets/characters/Profile_-_Merida.webp') },
-    { name: "Mirabel Madrigal", source: "Disney", image: require('../../assets/characters/Profile_-_Mirabel_Madrigal.webp') },
-    { name: "Moana", source: "Disney", image: require('../../assets/characters/Profile_-_Moana.webp') },
-    { name: "Namaari", source: "Disney", image: require('../../assets/characters/Profile_-_Namaari.webp') },
-    { name: "Pocahontas", source: "Disney", image: require('../../assets/characters/Profile_-_Pocahontas.webp') },
-    { name: "Rapunzel", source: "Disney", image: require('../../assets/characters/Profile_-_Rapunzel.webp') },
-    { name: "Raya", source: "Disney", image: require('../../assets/characters/Profile_-_Raya.webp') },
-    { name: "Shank", source: "Disney", image: require('../../assets/characters/Profile_-_Shank.webp') },
-    { name: "Snow White", source: "Disney", image: require('../../assets/characters/Profile_-_Snow_White.webp') },
-    { name: "Tiana", source: "Disney", image: require('../../assets/characters/Profile_-_Tiana.webp') },
-    { name: "Vanellope", source: "Disney", image: require('../../assets/characters/Profile_-_Vanellope_Von_schweetz.webp') },
-  ];
+  useEffect(() => {
+    setIsLoadingThemes(true);
+    apiClient.get("/api/story-themes/")
+      .then(response => {
+        const themeData = response.data.map(theme => theme.name);
+        setThemes(themeData);
+      })
+      .catch(error => {
+        console.error("Error fetching themes:", error);
+      })
+      .finally(() => {
+        setIsLoadingThemes(false);
+      });
+  }, []);
 
-  const themes = [
-    "fantasy",
-    "sci-fi",
-    "medieval",
-    "pirates",
-    "space",
-    "jungle",
-    "underwater",
-    "superheroes",
-    "animals",
-    "magic school",
-    "circus",
-    "haunted house",
-    "fairy tale",
-    "farm life",
-    "outer space",
-    "prehistoric",
-    "robot world",
-    "time travel",
-    "winter wonderland",
-    "desert adventure",
-    "forest kingdom",
-    "lost island",
-    "dream world",
-    "toy land",
-    "sports",
-    "music",
-    "royalty",
-    "travel",
-    "holiday",
-    "school life"
-  ]
+  useEffect(() => {
+    setIsLoadingCharacters(true);
+    apiClient.get("/api/story-characters/")
+      .then(response => {
+        const baseURL = apiClient.defaults.baseURL;
+        const characterData = response.data.map(character => ({
+          ...character,
+          image: character.image ? { uri: `${baseURL}${character.image}` } : null
+        }));
+        setCharacters(prev => {
+          const existingNames = prev.map(char => char.name);
+          
+          const newCharacters = characterData.filter(
+            char => !existingNames.includes(char.name)
+          );
+          
+          return [...prev, ...newCharacters];
+        });
+      })
+      .catch(error => {
+        console.error("Error fetching characters:", error);
+      })
+      .finally(() => {
+        setIsLoadingCharacters(false);
+      });
+  }, []);
+
+  useEffect(() => {
+    const sources = characters.reduce((acc, character) => {
+      if (!acc[character.source]) {
+        acc[character.source] = true;
+      }
+      return acc;
+    }, {});
+
+    setExpandedSources(sources);
+  }, [characters]);
 
   // First, group characters by source
   const groupedCharacters = characters.reduce((groups, character) => {
@@ -158,27 +158,27 @@ const Home = () => {
     characters: groupedCharacters[source]
   }));
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'queued':
-        return <FontAwesome6 name="clock" size={16} color={theme.colors.warning} />;
-      case 'processing':
-        return <ActivityIndicator size="small" color={theme.colors.primary} />;
-      case 'completed':
-        return <FontAwesome6 name="check-circle" size={16} color={theme.colors.success} />;
-      case 'failed':
-        return <FontAwesome6 name="times-circle" size={16} color={theme.colors.error} />;
-      default:
-        return null;
-    }
-  };
-
   const handleCharacterPress = (name) => {
-    setSelectedCharacters((prev) =>
-      prev.includes(name)
-        ? prev.filter((n) => n !== name) // Deselect if already selected
-        : [...prev, name] // Select if not selected
-    );
+    const character = characters.find(char => char.name === name);
+    
+    setSelectedCharacters((prev) => {
+      const isSelected = prev.some(char => char.name === name);
+      
+      if (isSelected) {
+        return prev.filter(char => char.name !== name);
+      } else {
+        // Prevent selecting more than 5 characters
+        if (prev.length >= 5) {
+          Alert.alert(
+            t("Maximum Reached"),
+            t("You can select up to five characters."),
+            [{ text: t("OK") }]
+          );
+          return prev;
+        }
+        return [...prev, { name: character.name, source: character.source }];
+      }
+    });
   };
 
   const handleThemeSelect = (theme) => {
@@ -225,7 +225,7 @@ const Home = () => {
             <Text style={[styles.subtitle, { color: theme.colors.primaryText, marginTop: 10 }]}>
               {t("Choose a story theme")}
             </Text>
-            
+
             <View style={[styles.themeContainer, { borderColor: theme.colors.border }]}>
               <TouchableOpacity 
                 style={[
@@ -244,11 +244,15 @@ const Home = () => {
                 <Text style={[styles.sourceTitle, { color: theme.colors.primaryText }]}>
                   {selectedTheme ? t(selectedTheme).charAt(0).toUpperCase() + t(selectedTheme).slice(1) : t("Choose a theme")}
                 </Text>
-                <FontAwesome6 
-                  name={showThemes ? "chevron-up" : "chevron-down"} 
-                  size={16} 
-                  color={theme.colors.secondaryText} 
-                />
+                {isLoadingThemes ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                ) : (
+                  <FontAwesome6 
+                    name={showThemes ? "chevron-up" : "chevron-down"} 
+                    size={16} 
+                    color={theme.colors.secondaryText} 
+                  />
+                )}
               </TouchableOpacity>
               
               {showThemes && (
@@ -261,31 +265,40 @@ const Home = () => {
                     borderTopWidth: 0,
                   }
                 ]}>
-                  <View style={styles.themesGrid}>
-                    {themes.map((item) => (
-                      <TouchableOpacity
-                        key={item}
-                        style={[
-                          styles.themeItem,
-                          { 
-                            borderColor: selectedTheme === item ? theme.colors.primary : theme.colors.border,
-                            backgroundColor: selectedTheme === item ? `${theme.colors.primary}20` : theme.colors.surface
-                          }
-                        ]}
-                        onPress={() => handleThemeSelect(item)}
-                      >
-                        <Text style={[
-                          styles.themeItemText, 
-                          { 
-                            color: selectedTheme === item ? theme.colors.primary : theme.colors.primaryText,
-                            fontWeight: selectedTheme === item ? '700' : '500'
-                          }
-                        ]}>
-                          {t(item).charAt(0).toUpperCase() + t(item).slice(1)}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                  {isLoadingThemes ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color={theme.colors.primary} />
+                      <Text style={[styles.loadingText, { color: theme.colors.secondaryText }]}>
+                        {t("Loading themes...")}
+                      </Text>
+                    </View>
+                  ) : (
+                    <View style={styles.themesGrid}>
+                      {themes.map((item) => (
+                        <TouchableOpacity
+                          key={item}
+                          style={[
+                            styles.themeItem,
+                            { 
+                              borderColor: selectedTheme === item ? theme.colors.primary : theme.colors.border,
+                              backgroundColor: selectedTheme === item ? `${theme.colors.primary}20` : theme.colors.surface
+                            }
+                          ]}
+                          onPress={() => handleThemeSelect(item)}
+                        >
+                          <Text style={[
+                            styles.themeItemText, 
+                            { 
+                              color: selectedTheme === item ? theme.colors.primary : theme.colors.primaryText,
+                              fontWeight: selectedTheme === item ? '700' : '500'
+                            }
+                          ]}>
+                            {t(item).charAt(0).toUpperCase() + t(item).slice(1)}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
                 </View>
               )}
             </View>
@@ -312,13 +325,17 @@ const Home = () => {
                   onPress={() => toggleSourceExpansion(sourceGroup.source)}
                 >
                   <Text style={[styles.sourceTitle, { color: theme.colors.primaryText }]}>
-                    {sourceGroup.source}
+                    {t(sourceGroup.source)}
                   </Text>
-                  <FontAwesome6 
-                    name={expandedSources[sourceGroup.source] ? "chevron-up" : "chevron-down"} 
-                    size={16} 
-                    color={theme.colors.secondaryText} 
-                  />
+                  {isLoadingCharacters ? (
+                    <ActivityIndicator size="small" color={theme.colors.primary} />
+                  ) : (
+                    <FontAwesome6 
+                      name={expandedSources[sourceGroup.source] ? "chevron-up" : "chevron-down"} 
+                      size={16} 
+                      color={theme.colors.secondaryText} 
+                    />
+                  )}
                 </TouchableOpacity>
                 
                 {expandedSources[sourceGroup.source] && (
@@ -331,34 +348,59 @@ const Home = () => {
                       borderTopWidth: 0,
                     }
                   ]}>
-                    <FlatList
-                      data={sourceGroup.characters}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      keyExtractor={(item) => item.name}
-                      renderItem={({ item }) => (
-                        <TouchableOpacity
-                          style={[
-                            styles.characterItem,
-                            { 
-                              borderColor: selectedCharacters.includes(item.name) ? theme.colors.primary : 'transparent',
-                              backgroundColor: selectedCharacters.includes(item.name) ? `${theme.colors.primary}20` : 'transparent'
-                            }
-                          ]}
-                          onPress={() => handleCharacterPress(item.name)}
-                        >
-                          <Image source={item.image} style={styles.characterImage} />
-                          <Text style={[
-                            styles.characterName, 
-                            { 
-                              color: selectedCharacters.includes(item.name) ? theme.colors.primary : theme.colors.primaryText,
-                            }
-                          ]}>
-                            {item.name}
-                          </Text>
-                        </TouchableOpacity>
-                      )}
-                    />
+                    {isLoadingCharacters ? (
+                      <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color={theme.colors.primary} />
+                        <Text style={[styles.loadingText, { color: theme.colors.secondaryText }]}>
+                          {t("Loading characters...")}
+                        </Text>
+                      </View>
+                    ) : (
+                      <FlatList
+                        data={sourceGroup.characters}
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        keyExtractor={(item) => item.name}
+                        renderItem={({ item }) => (
+                          <TouchableOpacity
+                            style={[
+                              styles.characterItem,
+                              {
+                                borderColor: selectedCharacters.some(char => char.name === item.name) ? theme.colors.primary : "transparent",
+                                backgroundColor: selectedCharacters.some(char => char.name === item.name) ? `${theme.colors.primary}20` : theme.colors.surface
+                              }
+                            ]}
+                            onPress={() => item.name !== "Create Yourself" ? handleCharacterPress(item.name) : null}
+                          >
+                            {item.name === "Create Yourself" ? (
+                              <View style={{
+                                width: 60,
+                                height: 60,
+                                borderRadius: 30,
+                                backgroundColor: `${theme.colors.primary}10`,
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                borderWidth: 1,
+                                borderColor: theme.colors.primary,
+                              }}>
+                                <FontAwesome6 name="wand-magic-sparkles" size={24} color={theme.colors.primary} />
+                              </View>
+                            ) : (
+                              item.image && 
+                              <Image source={item.image} style={styles.characterImage} />
+                            )}
+                            <Text style={[
+                              styles.characterName, 
+                              {
+                                color: selectedCharacters.some(char => char.name === item.name) ? theme.colors.primary : theme.colors.primaryText,
+                              }
+                            ]}>
+                              {t(item.name)}
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+                      />
+                    )}
                   </View>
                 )}
               </View>
@@ -435,66 +477,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600'
   },
-  connectionStatus: {
-    padding: 5,
-    borderRadius: 5,
-    alignItems: 'center',
-    marginVertical: 10,
-  },
-  connectionText: {
-    color: 'white',
-    fontSize: 12,
-  },
-  jobContainer: {
-    marginTop: 20,
-  },
-  jobCard: {
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    marginBottom: 10,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  jobTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    flex: 1,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  statusText: {
-    fontSize: 14,
-  },
-  detail: {
-    fontSize: 14,
-    marginTop: 5,
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-  },
-  emptyContainer: {
-    padding: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    marginTop: 10,
-  },
   sourceContainer: {
-    marginBottom: 15,
+    marginBottom: 12,
     borderRadius: 8,
     overflow: 'hidden',
   },
@@ -570,6 +554,16 @@ const styles = StyleSheet.create({
   themeItemText: {
     fontSize: 12,
     textAlign: 'center',
+  },
+  loadingContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 150,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
   },
 });
 
