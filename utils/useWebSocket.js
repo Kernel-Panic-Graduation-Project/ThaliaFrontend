@@ -7,7 +7,7 @@ export const useWebSocket = (url) => {
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState([]);
   const [currentJob, setCurrentJob] = useState(null);
-  const [stories, setStories] = useState([]);
+  const [stories, setStories] = useState(undefined);
   const socketRef = useRef(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 5;

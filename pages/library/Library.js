@@ -19,11 +19,16 @@ const Library = ({ route, navigation }) => {
   useEffect(() => {
     if (isConnected) {
       fetchStories(favoritesOnly);
-      setIsLoading(false);
     } else {
       setIsLoading(true);
     }
   }, [isConnected, favoritesOnly]);
+  
+  useEffect(() => {
+    if (stories !== undefined && isConnected) {
+      setIsLoading(false);
+    }
+  }, [stories, isConnected]);
 
   const handleRefresh = () => {
     if (isConnected) {
