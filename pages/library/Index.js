@@ -1,5 +1,5 @@
 import StoryDetail from "./StoryDetail";
-import Libary from "./Library"
+import Library from "./Library"
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useTranslation } from "react-i18next";
 import { useScreenOptions } from "../../hooks/useScreenOptions";
@@ -18,12 +18,13 @@ const Index = ({ route }) => {
         options={{
           title: t("Library"),
         }}
-        component={Libary}
+        component={Library}
       />
       <Stack.Screen 
         name="Story"
         options={{
           title: t("Story"),
+          headerShadowVisible: false,
         }}
         component={StoryDetail} 
       />

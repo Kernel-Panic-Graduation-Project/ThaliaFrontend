@@ -21,13 +21,16 @@ import { useScreenOptions } from './hooks/useScreenOptions';
 import RequestPasswordReset from './pages/login/RequestPasswordReset';
 import ConfirmPasswordReset from './pages/login/ConfirmPasswordReset';
 import Loading from "./components/Loading";
+import { UIProvider } from './context/UIContext';
+import { useUI } from './context/UIContext';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
 const MainTabs = () => {
-  const {t} = useTranslation();
-  const {theme} = useTheme();
+  const { t } = useTranslation();
+  const { theme } = useTheme();
+  const { isTabBarVisible } = useUI();
 
   return (
     <Tab.Navigator screenOptions={{
@@ -40,6 +43,7 @@ const MainTabs = () => {
         elevation: 0,
         shadowOpacity: 0,
         borderTopColor: 'transparent',
+        display: isTabBarVisible ? 'flex' : 'none',
       },
       animation: 'fade',
       tabBarLabelPosition: 'beside-icon',
@@ -66,9 +70,7 @@ const MainTabs = () => {
 
 const AppNavigator = () => {
   const { userData, isLoading } = useUser();
-  const { t } = useTranslation();
   const { theme } = useTheme();
-  const viewStyle = useViewStyle();
   const screenOptions = useScreenOptions();
 
   if (isLoading) {
@@ -142,9 +144,11 @@ export default function App() {
       <I18nextProvider i18n={i18n}>
         <ThemeProvider>
           <UserProvider>
-            <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-              <AppNavigator />
-            </SafeAreaView>
+            <UIProvider>
+              <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
+                <AppNavigator />
+              </SafeAreaView>
+            </UIProvider>
           </UserProvider>
         </ThemeProvider>
       </I18nextProvider>
