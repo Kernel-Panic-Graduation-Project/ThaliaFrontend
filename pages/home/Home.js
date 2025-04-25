@@ -29,6 +29,7 @@ const Home = () => {
   const [showThemes, setShowThemes] = useState(false);
   const [sound, setSound] = useState(null);
   const [playingAudioId, setPlayingAudioId] = useState(null);
+  const [loadingAudioId, setLoadingAudioId] = useState(null);
   
   const createStoryHandler = async () => {    
     if (!storyDescription || storyDescription.trim() === "") {
@@ -198,10 +199,17 @@ const Home = () => {
     });
   };
   
-  // Add this new function for audio click that handles both playing and selection
+  // Modify the handleAudioPress function to separate selection from playback
   const handleAudioPress = (audio) => {
+    // Only select the audio, don't play it
     handleAudioSelect(audio);
-    playAudio(audio.id);
+  };
+
+  // Add a new function to handle play button press
+  const handleAudioPlayPress = (event, audioId) => {
+    // Stop event propagation so parent TouchableOpacity doesn't trigger
+    event.stopPropagation();
+    playAudio(audioId);
   };
 
   // Clean up sound when component unmounts
@@ -213,7 +221,6 @@ const Home = () => {
       : undefined;
   }, [sound]);
 
-  // Add this function to handle playing audio
   const playAudio = async (audioId) => {
     try {
       // If we're already playing this audio, stop it
@@ -229,7 +236,9 @@ const Home = () => {
         await sound.unloadAsync();
       }
       
-      setPlayingAudioId(audioId);
+      // Set loading state
+      setLoadingAudioId(audioId);
+      setPlayingAudioId(null);
       
       // Create the download URL - but use apiClient.defaults.headers to get auth token
       const baseURL = apiClient.defaults.baseURL;
@@ -238,25 +247,33 @@ const Home = () => {
       // Get the authorization header from apiClient
       const authHeader = apiClient.defaults.headers.common['Authorization'];
       
-      // Download and play the audio with authorization header
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        { 
-          uri: downloadURL,
-          headers: {
-            Authorization: authHeader
+      try {
+        // Download and play the audio with authorization header
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { 
+            uri: downloadURL,
+            headers: {
+              Authorization: authHeader
+            }
+          },
+          { shouldPlay: true }
+        );
+        
+        setSound(newSound);
+        setPlayingAudioId(audioId);
+        setLoadingAudioId(null); // Clear loading state on success
+        
+        // When playback finishes
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setPlayingAudioId(null);
           }
-        },
-        { shouldPlay: true }
-      );
-      
-      setSound(newSound);
-      
-      // When playback finishes
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.didJustFinish) {
-          setPlayingAudioId(null);
-        }
-      });
+        });
+      } catch (error) {
+        // Clear loading state on error
+        setLoadingAudioId(null);
+        throw error; // Re-throw to be caught by the outer catch
+      }
     } catch (error) {
       console.error("Error playing audio:", error);
       Alert.alert(
@@ -265,6 +282,7 @@ const Home = () => {
         [{ text: t("OK") }]
       );
       setPlayingAudioId(null);
+      setLoadingAudioId(null);
     }
   };
 
@@ -562,19 +580,29 @@ const Home = () => {
                             }
                           ]}
                           onPress={() => handleAudioPress(item)}
+                          disabled={loadingAudioId !== null}
                         >
-                          <View style={[
-                            styles.audioIconContainer, 
-                            { 
-                              backgroundColor: selectedAudio && selectedAudio.id === item.id ? `${theme.colors.primary}30` : '#f0f0f0' 
-                            }
-                          ]}>
-                            <FontAwesome6 
-                              name={playingAudioId === item.id ? "pause" : "play"} 
-                              size={22} 
-                              color={selectedAudio && selectedAudio.id === item.id ? theme.colors.primary : theme.colors.secondaryText} 
-                            />
-                          </View>
+                          <TouchableOpacity
+                            style={[
+                              styles.audioIconContainer, 
+                              { 
+                                backgroundColor: selectedAudio && selectedAudio.id === item.id ? `${theme.colors.primary}30` : '#f0f0f0' 
+                              }
+                            ]}
+                            onPress={(event) => handleAudioPlayPress(event, item.id)}
+                            disabled={loadingAudioId !== null}
+                          >
+                            {loadingAudioId === item.id ? (
+                              // Show loading indicator for this specific audio
+                              <ActivityIndicator size="small" color={theme.colors.primary} />
+                            ) : (
+                              <FontAwesome6 
+                                name={playingAudioId === item.id ? "pause" : "play"} 
+                                size={22} 
+                                color={selectedAudio && selectedAudio.id === item.id ? theme.colors.primary : theme.colors.secondaryText} 
+                              />
+                            )}
+                          </TouchableOpacity>
                           <Text 
                             style={[
                               styles.audioName, 
