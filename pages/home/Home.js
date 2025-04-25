@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, ScrollView, Image, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from "react-i18next";
 import { FontAwesome6 } from "@expo/vector-icons";
@@ -7,6 +7,7 @@ import { useTheme } from "../../context/ThemeContext";
 import apiClient from '../../utils/Backend';
 import { useUser } from '../../context/UserContext';
 import { useViewStyle } from '../../hooks/useViewStyle';
+import { Audio } from 'expo-av'; // Add this import
 
 const Home = () => {
   const { t } = useTranslation();
@@ -19,10 +20,15 @@ const Home = () => {
   const [themes, setThemes] = useState([]);
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(true);
   const [characters, setCharacters] = useState([{ name: "Create Yourself", source: "Your Characters", image: null }]);
+  const [isLoadingAudios, setIsLoadingAudios] = useState(true);
+  const [audios, setAudios] = useState([]);
   const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [selectedTheme, setSelectedTheme] = useState(null);
+  const [selectedAudio, setSelectedAudio] = useState(null);
   const [expandedSources, setExpandedSources] = useState({});
   const [showThemes, setShowThemes] = useState(false);
+  const [sound, setSound] = useState(null);
+  const [playingAudioId, setPlayingAudioId] = useState(null);
   
   const createStoryHandler = async () => {    
     if (!storyDescription || storyDescription.trim() === "") {
@@ -53,7 +59,8 @@ const Home = () => {
     const payload = {
       description: storyDescription,
       theme: selectedTheme,
-      characters: selectedCharacter ? [selectedCharacter] : undefined
+      characters: selectedCharacter ? [selectedCharacter] : undefined,
+      audio: selectedAudio ? selectedAudio.id : undefined
     };
     
     try {
@@ -63,6 +70,7 @@ const Home = () => {
       setStoryDescription("");
       setSelectedTheme(null);
       setSelectedCharacter(null);
+      setSelectedAudio(null);
       
       // Notify user
       Alert.alert(
@@ -81,6 +89,17 @@ const Home = () => {
       setIsSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    setIsLoadingAudios(true);
+    apiClient.get("/api/audios/").then(response => {
+      setAudios(response.data);
+    }).catch(error => {
+      console.error('Failed to fetch audio files:', error);
+    }).finally(() => {
+      setIsLoadingAudios(false);
+    });
+  }, []);
 
   useEffect(() => {
     setIsLoadingThemes(true);
@@ -132,6 +151,8 @@ const Home = () => {
       return acc;
     }, {});
 
+    sources["audios"] = true;
+
     setExpandedSources(sources);
   }, [characters]);
 
@@ -169,12 +190,90 @@ const Home = () => {
     setSelectedTheme(theme === selectedTheme ? null : theme);
   };
 
-  // Add this function with your other handler functions
-  const toggleSourceExpansion = (source) => {
-    setExpandedSources(prev => ({
-      ...prev,
-      [source]: !prev[source]
-    }));
+  // Add this function where your other handler functions are defined
+  const handleAudioSelect = (audio) => {
+    // Continue with selection logic
+    setSelectedAudio((prev) => {
+      return prev && prev.id === audio.id ? null : audio;
+    });
+  };
+  
+  // Add this new function for audio click that handles both playing and selection
+  const handleAudioPress = (audio) => {
+    handleAudioSelect(audio);
+    playAudio(audio.id);
+  };
+
+  // Clean up sound when component unmounts
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+
+  // Add this function to handle playing audio
+  const playAudio = async (audioId) => {
+    try {
+      // If we're already playing this audio, stop it
+      if (playingAudioId === audioId && sound) {
+        await sound.stopAsync();
+        setPlayingAudioId(null);
+        return;
+      }
+      
+      // If we're playing a different audio, stop it first
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+      }
+      
+      setPlayingAudioId(audioId);
+      
+      // Create the download URL - but use apiClient.defaults.headers to get auth token
+      const baseURL = apiClient.defaults.baseURL;
+      const downloadURL = `${baseURL}/api/download-audio/${audioId}/`;
+      
+      // Get the authorization header from apiClient
+      const authHeader = apiClient.defaults.headers.common['Authorization'];
+      
+      // Download and play the audio with authorization header
+      const { sound: newSound } = await Audio.Sound.createAsync(
+        { 
+          uri: downloadURL,
+          headers: {
+            Authorization: authHeader
+          }
+        },
+        { shouldPlay: true }
+      );
+      
+      setSound(newSound);
+      
+      // When playback finishes
+      newSound.setOnPlaybackStatusUpdate((status) => {
+        if (status.didJustFinish) {
+          setPlayingAudioId(null);
+        }
+      });
+    } catch (error) {
+      console.error("Error playing audio:", error);
+      Alert.alert(
+        t("Error"),
+        t("Failed to play audio. Please try again."),
+        [{ text: t("OK") }]
+      );
+      setPlayingAudioId(null);
+    }
+  };
+
+  // Format duration from seconds to MM:SS
+  const formatDuration = (seconds) => {
+    if (!seconds) return '0:00';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
   };
 
   return (
@@ -389,6 +488,124 @@ const Home = () => {
                 )}
               </View>
             ))}
+
+            {/* Audio Selection Pane */}
+            <Text style={[styles.subtitle, { color: theme.colors.primaryText, marginTop: 10 }]}>
+              {t("Your Voice Recordings")}
+            </Text>
+
+            <View style={[styles.sourceContainer, { borderColor: theme.colors.border }]}>
+              <TouchableOpacity 
+                style={[
+                  styles.sourceTitleContainer, 
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    borderBottomWidth: expandedSources["audios"] ? 0 : 1,
+                    borderBottomLeftRadius: expandedSources["audios"] ? 0 : 8,
+                    borderBottomRightRadius: expandedSources["audios"] ? 0 : 8
+                  }
+                ]}
+                onPress={() => toggleSourceExpansion("audios")}
+              >
+                <Text style={[styles.sourceTitle, { color: theme.colors.primaryText }]}>
+                  {t("Voice Recordings")}
+                </Text>
+                {isLoadingAudios ? (
+                  <ActivityIndicator size="small" color={theme.colors.primary} />
+                ) : (
+                  <FontAwesome6 
+                    name={expandedSources["audios"] ? "chevron-up" : "chevron-down"} 
+                    size={16} 
+                    color={theme.colors.secondaryText} 
+                  />
+                )}
+              </TouchableOpacity>
+              
+              {expandedSources["audios"] && (
+                <View style={[
+                  styles.charactersContainer, 
+                  { 
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    borderWidth: 1,
+                    borderTopWidth: 0,
+                  }
+                ]}>
+                  {isLoadingAudios ? (
+                    <View style={styles.loadingContainer}>
+                      <ActivityIndicator size="large" color={theme.colors.primary} />
+                      <Text style={[styles.loadingText, { color: theme.colors.secondaryText }]}>
+                        {t("Loading voice recordings...")}
+                      </Text>
+                    </View>
+                  ) : audios.length > 0 ? (
+                    <FlatList
+                      data={audios}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      keyExtractor={(item) => item.id.toString()}
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[
+                            styles.audioItem,
+                            {
+                              width: 120,
+                              margin: 8,
+                              padding: 12,
+                              borderRadius: 10,
+                              borderWidth: 1,
+                              borderColor: selectedAudio && selectedAudio.id === item.id ? theme.colors.primary : theme.colors.border,
+                              backgroundColor: selectedAudio && selectedAudio.id === item.id ? `${theme.colors.primary}20` : theme.colors.surface,
+                              alignItems: 'center',
+                            }
+                          ]}
+                          onPress={() => handleAudioPress(item)}
+                        >
+                          <View style={[
+                            styles.audioIconContainer, 
+                            { 
+                              backgroundColor: selectedAudio && selectedAudio.id === item.id ? `${theme.colors.primary}30` : '#f0f0f0' 
+                            }
+                          ]}>
+                            <FontAwesome6 
+                              name={playingAudioId === item.id ? "pause" : "play"} 
+                              size={22} 
+                              color={selectedAudio && selectedAudio.id === item.id ? theme.colors.primary : theme.colors.secondaryText} 
+                            />
+                          </View>
+                          <Text 
+                            style={[
+                              styles.audioName, 
+                              { 
+                                color: selectedAudio && selectedAudio.id === item.id ? theme.colors.primary : theme.colors.primaryText,
+                                fontWeight: selectedAudio && selectedAudio.id === item.id ? '700' : '500'
+                              }
+                            ]} 
+                            numberOfLines={1}
+                          >
+                            {item.name || t("Recording")}
+                          </Text>
+                          <View style={styles.audioDuration}>
+                            <FontAwesome6 name="clock" size={12} color={theme.colors.secondaryText} style={{marginRight: 4}} />
+                            <Text style={[styles.durationText, { color: theme.colors.secondaryText }]}>
+                              {formatDuration(item.duration)}
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      )}
+                    />
+                  ) : (
+                    <View style={styles.emptyContainer}>
+                      <Text style={[styles.emptyText, { color: theme.colors.secondaryText }]}>
+                        {t("No voice recordings found")}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              )}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -548,6 +765,47 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 10,
     fontSize: 16,
+  },
+  audioItem: {
+    width: 120,
+    margin: 8,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  audioIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  audioName: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginBottom: 4,
+    width: '100%',
+  },
+  audioDuration: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  durationText: {
+    fontSize: 12,
+  },
+  emptyContainer: {
+    padding: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    textAlign: 'center',
   },
 });
 
