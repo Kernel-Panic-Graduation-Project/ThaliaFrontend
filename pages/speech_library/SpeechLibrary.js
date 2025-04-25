@@ -78,7 +78,7 @@ const SpeechLibrary = ({ route, navigation }) => {
       if (isNaN(date.getTime())) {
         return 'Invalid date';
       }
-      
+
       // Format: "Apr 25, 2025"
       return date.toLocaleDateString(undefined, {
         year: 'numeric',
@@ -90,7 +90,7 @@ const SpeechLibrary = ({ route, navigation }) => {
       return 'Invalid date';
     }
   };
-  
+
   // Format the duration (assuming it's in seconds)
   const formatDuration = (seconds) => {
     const minutes = Math.floor(seconds / 60);
@@ -117,9 +117,9 @@ const SpeechLibrary = ({ route, navigation }) => {
     return (
       <TouchableOpacity
         style={[
-          styles.speechCard, 
-          { 
-            backgroundColor: theme.colors.surface, 
+          styles.speechCard,
+          {
+            backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
             opacity: item.status === 'completed' ? 1 : 0.7
           }
@@ -137,7 +137,7 @@ const SpeechLibrary = ({ route, navigation }) => {
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.speechMeta}>
           <View style={styles.metaItem}>
             <FontAwesome6 name="clock" size={14} color={theme.colors.secondaryText} style={styles.metaIcon} />
@@ -145,7 +145,7 @@ const SpeechLibrary = ({ route, navigation }) => {
               {formatDuration(item.duration)}
             </Text>
           </View>
-          
+
           <View style={styles.metaItem}>
             <FontAwesome6 name="calendar-alt" size={14} color={theme.colors.secondaryText} style={styles.metaIcon} />
             <Text style={[styles.metaText, { color: theme.colors.secondaryText }]}>
@@ -153,21 +153,21 @@ const SpeechLibrary = ({ route, navigation }) => {
             </Text>
           </View>
         </View>
-        
+
         <View style={styles.speechFooter}>
-          <Text 
+          <Text
             style={[styles.transcriptPreview, { color: theme.colors.secondaryText }]}
             numberOfLines={2}
           >
             {item.transcript}
           </Text>
-          
+
           {item.favorited && (
-            <FontAwesome6 
-              name="heart" 
-              solid 
-              size={16} 
-              color={theme.colors.error} 
+            <FontAwesome6
+              name="heart"
+              solid
+              size={16}
+              color={theme.colors.error}
             />
           )}
         </View>
@@ -183,35 +183,35 @@ const SpeechLibrary = ({ route, navigation }) => {
     <View style={[viewStyle, { paddingBottom: 0 }]}>
       <View style={styles.headerContainer}>
         <Text style={[styles.subtitle, { color: theme.colors.secondaryText }]}>
-          {favoritesOnly 
-            ? t("Your favorite audio files") 
+          {favoritesOnly
+            ? t("Your favorite audio files")
             : t("All your audio files in one place")}
         </Text>
         <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            onPress={toggleFavoritesFilter} 
+          <TouchableOpacity
+            onPress={toggleFavoritesFilter}
             style={styles.filterButton}
           >
             <FontAwesome6
-              name="heart" 
-              size={20} 
+              name="heart"
+              size={20}
               solid={favoritesOnly}
-              color={favoritesOnly ? theme.colors.error : theme.colors.secondary} 
+              color={favoritesOnly ? theme.colors.error : theme.colors.secondary}
             />
           </TouchableOpacity>
-          <TouchableOpacity 
-            onPress={fetchAudioFiles} 
+          <TouchableOpacity
+            onPress={fetchAudioFiles}
             style={styles.refreshButton}
           >
-            <FontAwesome6 
-              name="rotate-right" 
-              size={20} 
-              color={theme.colors.primary} 
+            <FontAwesome6
+              name="rotate-right"
+              size={20}
+              color={theme.colors.primary}
             />
           </TouchableOpacity>
         </View>
       </View>
-      
+
       {isLoading ? (
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -240,9 +240,9 @@ const SpeechLibrary = ({ route, navigation }) => {
           <Text style={[styles.emptyText, { color: theme.colors.secondaryText }]}>
             {favoritesOnly ? t("No favorite audio files yet") : t("No audio files yet")}
           </Text>
-          <TouchableOpacity 
-            style={[styles.createButton, { backgroundColor: theme.colors.primary }]} 
-            onPress={() => navigation.navigate(t("Home"))}
+          <TouchableOpacity
+            style={[styles.createButton, { backgroundColor: theme.colors.primary }]}
+            onPress={() => navigation.navigate('AddVoice')}
           >
             <Text style={[styles.createButtonText, { color: theme.colors.primaryTextInverted }]}>
               {t("Create new audio")}
@@ -250,6 +250,28 @@ const SpeechLibrary = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Alternative with plus icon */}
+      <TouchableOpacity
+        style={[styles.fab, { backgroundColor: theme.colors.primary }]}
+        onPress={() => navigation.navigate('AddVoice')}
+      >
+        <View style={styles.fabIconContainer}>
+          <FontAwesome6
+            name="microphone"
+            size={20}
+            color={theme.colors.primaryTextInverted}
+          />
+          <View style={[styles.plusIconOverlay, { backgroundColor: theme.colors.primary }]}>
+            <FontAwesome6
+              name="plus"
+              size={14}
+              color={theme.colors.primaryTextInverted}
+            />
+          </View>
+        </View>
+      </TouchableOpacity>
+
     </View>
   );
 };
@@ -355,6 +377,39 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  fabIconContainer: {
+    position: 'relative',
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  plusIconOverlay: {
+    position: 'absolute',
+    right: -6,
+    top: -6,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fab: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    right: 20,
+    bottom: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    zIndex: 999,
   },
 });
 
