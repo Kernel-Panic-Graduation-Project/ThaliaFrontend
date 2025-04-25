@@ -22,8 +22,19 @@ import { useUI } from '../../context/UIContext';
 
 // Add this function at the top level (after other utility functions)
 const splitTextIntoSentences = (text) => {
-  // Split text by newline characters and filter out empty lines
-  return text.split('\n').filter(line => line.trim() !== '');
+  const words = text.split(' ').filter(word => word.trim() !== '');
+  
+  const sentences = [];
+  const wordsPerSentence = 10;
+  
+  for (let i = 0; i < words.length; i += wordsPerSentence) {
+    const chunk = words.slice(i, i + wordsPerSentence).join(' ');
+    if (chunk.trim() !== '') {
+      sentences.push(chunk);
+    }
+  }
+  
+  return sentences;
 };
 
 // Update the SubtitleText component to show 3 sentences with current in middle
@@ -695,8 +706,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 20,
     borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.35)', // Optional semi-transparent background for text
-    marginTop: 60, // Give some space at the top
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    marginTop: 60,
   },
   storyContent: {
     fontSize: 18,

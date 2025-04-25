@@ -19,12 +19,12 @@ const Home = () => {
   const [themes, setThemes] = useState([]);
   const [isLoadingCharacters, setIsLoadingCharacters] = useState(true);
   const [characters, setCharacters] = useState([{ name: "Create Yourself", source: "Your Characters", image: null }]);
-  const [selectedCharacters, setSelectedCharacters] = useState([]);
+  const [selectedCharacter, setSelectedCharacter] = useState(null);
   const [selectedTheme, setSelectedTheme] = useState(null);
   const [expandedSources, setExpandedSources] = useState({});
   const [showThemes, setShowThemes] = useState(false);
   
-  const createStoryHandler = async () => {
+  const createStoryHandler = async () => {    
     if (!storyDescription || storyDescription.trim() === "") {
       Alert.alert(
         t("Error"),
@@ -32,7 +32,7 @@ const Home = () => {
         [{ text: t("OK") }]
       );
       return;
-    } else if (selectedCharacters.length !== 1) {
+    } else if (!selectedCharacter) {
       Alert.alert(
         t("Error"),
         t("Please select a character."),
@@ -53,7 +53,7 @@ const Home = () => {
     const payload = {
       description: storyDescription,
       theme: selectedTheme,
-      characters: selectedCharacters.length > 0 ? selectedCharacters : undefined
+      characters: selectedCharacter ? [selectedCharacter] : undefined
     };
     
     try {
@@ -62,7 +62,7 @@ const Home = () => {
       // Clear the form after successful submission
       setStoryDescription("");
       setSelectedTheme(null);
-      setSelectedCharacters([]);
+      setSelectedCharacter(null);
       
       // Notify user
       Alert.alert(
@@ -154,13 +154,13 @@ const Home = () => {
   const handleCharacterPress = (name) => {
     const character = characters.find(char => char.name === name);
     
-    setSelectedCharacters((prev) => {
-      const isAlreadySelected = prev.some(char => char.name === name);
+    setSelectedCharacter((prev) => {
+      const isAlreadySelected = prev && prev.name === name;
       
       if (isAlreadySelected) {
-        return [];
+        return null;
       } else {
-        return [{ name: character.name, source: character.source }];
+        return { name: character.name, source: character.source };
       }
     });
   };
@@ -350,8 +350,8 @@ const Home = () => {
                             style={[
                               styles.characterItem,
                               {
-                                borderColor: selectedCharacters.some(char => char.name === item.name) ? theme.colors.primary : "transparent",
-                                backgroundColor: selectedCharacters.some(char => char.name === item.name) ? `${theme.colors.primary}20` : theme.colors.surface
+                                borderColor: selectedCharacter && selectedCharacter.name === item.name ? theme.colors.primary : "transparent",
+                                backgroundColor: selectedCharacter && selectedCharacter.name === item.name ? `${theme.colors.primary}20` : theme.colors.surface
                               }
                             ]}
                             onPress={() => item.name !== "Create Yourself" ? handleCharacterPress(item.name) : null}
@@ -376,7 +376,7 @@ const Home = () => {
                             <Text style={[
                               styles.characterName, 
                               {
-                                color: selectedCharacters.some(char => char.name === item.name) ? theme.colors.primary : theme.colors.primaryText,
+                                color: selectedCharacter && selectedCharacter.name === item.name ? theme.colors.primary : theme.colors.primaryText,
                               }
                             ]}>
                               {t(item.name)}
