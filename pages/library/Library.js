@@ -72,6 +72,7 @@ const Library = ({ route, navigation }) => {
         case 'queued':
           return <FontAwesome6 name="clock" size={16} color={theme.colors.warning} />;
         case 'generating_story':
+        case 'generating_image':
         case 'generating_audio':
           return <ActivityIndicator size="small" color={theme.colors.primary} />;
         case 'completed':

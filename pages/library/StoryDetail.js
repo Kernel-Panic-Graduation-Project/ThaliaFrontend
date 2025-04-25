@@ -8,6 +8,7 @@ import {
   Share,
   Alert,
   ScrollView,
+  Image,
 } from 'react-native';
 import { FontAwesome6 } from "@expo/vector-icons";
 import { useTheme } from "../../context/ThemeContext";
@@ -384,6 +385,18 @@ const StoryDetail = ({ route, navigation }) => {
           {story.text_sections.map((textSection, index) => (
             <View key={`section-${index}`} style={styles.pageContainer}>
               <ScrollView style={styles.scrollView}>
+                {/* Add image display if available for this section */}
+                {story.images && story.images[index] && (
+                  <View style={styles.imageContainer}>
+                    <Image
+                      source={{ 
+                        uri: `data:${story.images[index].image_mime_type || 'image/jpeg'};base64,${story.images[index].image}` 
+                      }}
+                      style={styles.sectionImage}
+                      resizeMode="contain"
+                    />
+                  </View>
+                )}
                 <HighlightedText
                   text={textSection}
                   highlightedLetterCount={highlightedLetterCounts[index] || 0}
@@ -537,6 +550,17 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     // Elevation for Android
     elevation: 3,
+  },
+  imageContainer: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  sectionImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
   },
 });
 

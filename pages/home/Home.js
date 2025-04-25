@@ -32,17 +32,10 @@ const Home = () => {
         [{ text: t("OK") }]
       );
       return;
-    } else if (selectedCharacters.length < 2) {
+    } else if (selectedCharacters.length !== 1) {
       Alert.alert(
         t("Error"),
-        t("Please select at least two characters."),
-        [{ text: t("OK") }]
-      );
-      return;
-    }  else if (selectedCharacters.length > 5) {
-      Alert.alert(
-        t("Error"),
-        t("Please select no more than five characters."),
+        t("Please select a character."),
         [{ text: t("OK") }]
       );
       return;
@@ -162,21 +155,12 @@ const Home = () => {
     const character = characters.find(char => char.name === name);
     
     setSelectedCharacters((prev) => {
-      const isSelected = prev.some(char => char.name === name);
+      const isAlreadySelected = prev.some(char => char.name === name);
       
-      if (isSelected) {
-        return prev.filter(char => char.name !== name);
+      if (isAlreadySelected) {
+        return [];
       } else {
-        // Prevent selecting more than 5 characters
-        if (prev.length >= 5) {
-          Alert.alert(
-            t("Maximum Reached"),
-            t("You can select up to five characters."),
-            [{ text: t("OK") }]
-          );
-          return prev;
-        }
-        return [...prev, { name: character.name, source: character.source }];
+        return [{ name: character.name, source: character.source }];
       }
     });
   };
