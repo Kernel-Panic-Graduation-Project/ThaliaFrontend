@@ -6,6 +6,13 @@ import ExpandableButton from "../../components/ExpandableButton";
 import { useTheme } from "../../context/ThemeContext";
 import apiClient from '../../utils/Backend';
 import { useUser } from '../../context/UserContext';
+import {
+  GoogleSignin,
+  GoogleSigninButton,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+
+GoogleSignin.configure();
 
 const Login = ({ navigation }) => {
   const { t } = useTranslation();
@@ -52,6 +59,83 @@ const Login = ({ navigation }) => {
         [{ text: t("OK") }]
       );
     });
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      await GoogleSignin.hasPlayServices();
+      const response = await GoogleSignin.signIn();
+      if (isSuccessResponse(response)) {
+        setIsLoading(true);
+
+        // get user email and token from response
+        const userInfo = response.data;
+
+        // send email to backend for login
+        const payload = {
+          email: userInfo.email,
+          password: "",
+        };
+        apiClient.post('/api/login/', payload).then(response => {      
+          saveUser({
+            token: response.data.token,
+            user_id: response.data.user_id,
+            username: response.data.username,
+            email: response.data.email
+          });
+          
+          setIsLoading(false);
+        }).catch(error => {
+          console.error('Login error:', error);
+          
+          // signup new user if not found in backend
+          apiClient.post('/api/signup/', payload).then(response => {
+            saveUser({
+              token: response.data.token,
+              user_id: response.data.user_id,
+              username: response.data.username,
+              email: response.data.email
+            });
+      
+            setIsLoading(false);
+          }).catch(error => {
+            console.error('Signup error:', error);
+            setIsLoading(false);
+            
+            let errorMessage = t("Something went wrong. Please try again later.");
+            if (error?.response?.data?.message) {
+              errorMessage = error.response.data.message;
+            }
+            
+            Alert.alert(
+              t("Error"),
+              errorMessage,
+              [{ text: t("OK") }]
+            );
+          });
+          
+        });
+
+        setIsLoading(false);
+      } else {
+        // sign in was cancelled by user
+      }
+    } catch (error) {
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.IN_PROGRESS:
+            // operation (eg. sign in) already in progress
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            // Android only, play services not available or outdated
+            break;
+          default:
+          // some other error happened
+        }
+      } else {
+        // an error that's not related to google sign in occurred
+      }
+    }
   };
 
   return (
@@ -119,7 +203,7 @@ const Login = ({ navigation }) => {
 
         <ExpandableButton 
           style={[styles.socialButton, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]} 
-          onPress={() => {}}
+          onPress={handleGoogleLogin}
         >
           <FontAwesome6 name="google" size={20} color={theme.colors.primaryText} />
           <Text style={[styles.socialButtonText, { color: theme.colors.primaryText }]}>
