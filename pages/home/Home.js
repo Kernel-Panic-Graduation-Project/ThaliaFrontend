@@ -53,6 +53,13 @@ const Home = () => {
         [{ text: t("OK") }]
       );
       return;
+    } else if (!selectedAudio) {
+      Alert.alert(
+        t("Error"),
+        t("Please select an audio recording."),
+        [{ text: t("OK") }]
+      );
+      return;
     }
     
     setIsSubmitting(true);
@@ -61,7 +68,7 @@ const Home = () => {
       description: storyDescription,
       theme: selectedTheme,
       characters: selectedCharacter ? [selectedCharacter] : undefined,
-      audio: selectedAudio ? selectedAudio.id : undefined
+      audio_id: selectedAudio ? selectedAudio.id : undefined
     };
     
     try {
