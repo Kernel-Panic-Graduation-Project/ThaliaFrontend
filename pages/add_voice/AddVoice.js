@@ -35,22 +35,6 @@ const AddVoice = ({ navigation }) => {
     // Hard-coded text for users to read
     const displayText = "The quick brown fox jumps over the lazy dog. This pangram contains all the letters of the English alphabet.";
 
-    // Cleanup resources when component unmounts
-    useEffect(() => {
-        return () => {
-            if (sound) {
-                sound.unloadAsync().catch(error => {
-                    console.error('Error unloading sound during cleanup:', error);
-                });
-            }
-            if (recording) {
-                recording.stopAndUnloadAsync().catch(error => {
-                    console.error('Error stopping recording during cleanup:', error);
-                });
-            }
-        };
-    }, [sound, recording]);
-
     // Timer for recording duration
     useEffect(() => {
         let interval = null;

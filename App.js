@@ -4,7 +4,6 @@ import {createBottomTabNavigator} from "@react-navigation/bottom-tabs";
 import {createNativeStackNavigator} from "@react-navigation/native-stack";
 import HomeIndex from "./pages/home/Index";
 import LibraryIndex from "./pages/library/Index";
-import SpeechLibraryIndex from "./pages/speech_library/Index";
 import ProfileIndex from "./pages/profile/Index";
 import Login from "./pages/login/Login";
 import Signup from "./pages/login/Signup";
@@ -16,7 +15,6 @@ import {ThemeProvider, useTheme} from "./context/ThemeContext";
 import { UserProvider, useUser } from './context/UserContext';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useViewStyle } from './hooks/useViewStyle';
 import { useScreenOptions } from './hooks/useScreenOptions';
 import RequestPasswordReset from './pages/login/RequestPasswordReset';
 import ConfirmPasswordReset from './pages/login/ConfirmPasswordReset';
@@ -55,10 +53,6 @@ const MainTabs = () => {
       <Tab.Screen name={"LibraryTab"} component={LibraryIndex} options={{
         tabBarIcon: ({color, size}) => <FontAwesome6 name="book" size={size} color={color} />,
         title: t("Library"),
-      }} />
-      <Tab.Screen name={"SpeechLibraryTab"} component={SpeechLibraryIndex} options={{
-        tabBarIcon: ({color, size}) => <FontAwesome6 name="book" size={size} color={color} />,
-        title: t("SpeechLibrary"),
       }} />
       <Tab.Screen name={"ProfileTab"} component={ProfileIndex} options={{
         tabBarIcon: ({color, size}) => <FontAwesome6 name="user" size={size} color={color} />,

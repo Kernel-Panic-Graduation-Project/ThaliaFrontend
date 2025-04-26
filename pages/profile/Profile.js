@@ -214,7 +214,7 @@ const Profile = ({ route, navigation }) => {
               
               <TouchableOpacity 
                 style={[styles.settingRow, { backgroundColor: theme.colors.surface }]}
-                onPress={() => navigation.navigate('ManageVoices')}
+                onPress={() => navigation.navigate('SpeechLibrary')}
               >
                 <View style={styles.settingTextContainer}>
                   <FontAwesome6 

@@ -6,6 +6,7 @@ import { useTheme } from "../../context/ThemeContext";
 import { useWebSocket } from '../../utils/useWebSocket';
 import { useViewStyle } from '../../hooks/useViewStyle';
 import apiClient from '../../utils/Backend';
+import { Audio } from 'expo-av';
 
 const SpeechLibrary = ({ route, navigation }) => {
   const { t } = useTranslation();
@@ -15,11 +16,25 @@ const SpeechLibrary = ({ route, navigation }) => {
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [audios, setAudios] = useState([]);
+  
+  // Audio playback state variables
+  const [sound, setSound] = useState(null);
+  const [playingAudioId, setPlayingAudioId] = useState(null);
+  const [loadingAudioId, setLoadingAudioId] = useState(null);
 
   // Fetch audios when component mounts
   useEffect(() => {
     fetchAudioFiles();
   }, []);
+
+  // Clean up sound when component unmounts
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
 
   const fetchAudioFiles = () => {
     setIsLoading(true);
@@ -47,27 +62,73 @@ const SpeechLibrary = ({ route, navigation }) => {
     setIsRefreshing(false);
   };
 
-  const navigateToSpeechDetail = (speech) => {
-    if (speech.status === 'completed') {
-      navigation.navigate('Speech', { speech });
-    } else if (speech.status === 'failed') {
+  // Play audio function
+  const playAudio = async (audioId, event) => {
+    // Stop event propagation to prevent navigation
+    if (event) {
+      event.stopPropagation();
+    }
+
+    try {
+      // If we're already playing this audio, stop it
+      if (playingAudioId === audioId && sound) {
+        await sound.stopAsync();
+        setPlayingAudioId(null);
+        return;
+      }
+      
+      // If we're playing a different audio, stop it first
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+      }
+      
+      // Set loading state
+      setLoadingAudioId(audioId);
+      setPlayingAudioId(null);
+      
+      // Create the download URL
+      const baseURL = apiClient.defaults.baseURL;
+      const downloadURL = `${baseURL}/api/download-audio/${audioId}/`;
+      
+      // Get the authorization header
+      const authHeader = apiClient.defaults.headers.common['Authorization'];
+      
+      try {
+        // Download and play the audio with authorization header
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { 
+            uri: downloadURL,
+            headers: {
+              Authorization: authHeader
+            }
+          },
+          { shouldPlay: true }
+        );
+        
+        setSound(newSound);
+        setPlayingAudioId(audioId);
+        setLoadingAudioId(null);
+        
+        // When playback finishes
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.didJustFinish) {
+            setPlayingAudioId(null);
+          }
+        });
+      } catch (error) {
+        setLoadingAudioId(null);
+        throw error;
+      }
+    } catch (error) {
+      console.error("Error playing audio:", error);
       Alert.alert(
-        t("Processing failed"),
-        t("This audio processing has failed. Please try again."),
+        t("Error"),
+        t("Failed to play audio. Please try again."),
         [{ text: t("OK") }]
       );
-    } else if (speech.status === 'queued') {
-      Alert.alert(
-        t("Audio is in queue"),
-        t("This audio is still in the queue. Please wait until it's processed."),
-        [{ text: t("OK") }]
-      );
-    } else {
-      Alert.alert(
-        t("Audio is not ready"),
-        t("This audio is still being processed. Please wait until it's completed."),
-        [{ text: t("OK") }]
-      );
+      setPlayingAudioId(null);
+      setLoadingAudioId(null);
     }
   };
 
@@ -99,43 +160,20 @@ const SpeechLibrary = ({ route, navigation }) => {
   };
 
   const renderSpeechItem = ({ item }) => {
-    const getStatusIcon = (status) => {
-      switch (status) {
-        case 'queued':
-          return <FontAwesome6 name="clock" size={16} color={theme.colors.warning} />;
-        case 'processing':
-          return <ActivityIndicator size="small" color={theme.colors.primary} />;
-        case 'completed':
-          return <FontAwesome6 name="check-circle" size={16} color={theme.colors.success} />;
-        case 'failed':
-          return <FontAwesome6 name="times-circle" size={16} color={theme.colors.error} />;
-        default:
-          return null;
-      }
-    };
-
     return (
-      <TouchableOpacity
+      <View
         style={[
           styles.speechCard,
           {
             backgroundColor: theme.colors.surface,
             borderColor: theme.colors.border,
-            opacity: item.status === 'completed' ? 1 : 0.7
           }
         ]}
-        onPress={() => navigateToSpeechDetail(item)}
       >
         <View style={styles.headerRow}>
           <Text style={[styles.speechTitle, { color: theme.colors.primaryText }]}>
             {item.name}
           </Text>
-          <View style={styles.statusContainer}>
-            {getStatusIcon(item.status)}
-            <Text style={[styles.statusText, { color: theme.colors.secondaryText, marginLeft: 5 }]}>
-              {t(item.status)}
-            </Text>
-          </View>
         </View>
 
         <View style={styles.speechMeta}>
@@ -152,6 +190,28 @@ const SpeechLibrary = ({ route, navigation }) => {
               {formatDate(item.uploaded_at)}
             </Text>
           </View>
+          
+          <TouchableOpacity
+            style={[
+              styles.playButton, 
+              { 
+                backgroundColor: '#f0f0f0',
+                opacity: loadingAudioId !== null ? 0.5 : 1 
+              }
+            ]}
+            onPress={(event) => playAudio(item.id, event)}
+            disabled={loadingAudioId !== null}
+          >
+            {loadingAudioId === item.id ? (
+              <ActivityIndicator size="small" color={theme.colors.primary} />
+            ) : (
+              <FontAwesome6 
+                name={playingAudioId === item.id ? "pause" : "play"} 
+                size={16} 
+                color={theme.colors.primary} 
+              />
+            )}
+          </TouchableOpacity>
         </View>
 
         <View style={styles.speechFooter}>
@@ -171,7 +231,7 @@ const SpeechLibrary = ({ route, navigation }) => {
             />
           )}
         </View>
-      </TouchableOpacity>
+      </View>
     );
   };
 
@@ -328,6 +388,7 @@ const styles = StyleSheet.create({
   speechMeta: {
     flexDirection: 'row',
     marginBottom: 12,
+    alignItems: 'center',
   },
   metaItem: {
     flexDirection: 'row',
@@ -339,6 +400,15 @@ const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 14,
+  },
+  playButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 'auto',
   },
   speechFooter: {
     flexDirection: 'row',

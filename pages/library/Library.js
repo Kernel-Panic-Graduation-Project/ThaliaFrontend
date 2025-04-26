@@ -98,7 +98,7 @@ const Library = ({ route, navigation }) => {
       >
         <View style={styles.headerRow}>
           <Text style={[styles.storyTitle, { color: theme.colors.primaryText }]}>
-            {item.title}
+            {item.title.length > 24 ? item.title.substring(0, 24) + '...' : item.title}
           </Text>
           <View style={styles.statusContainer}>
             {getStatusIcon(item.status)}

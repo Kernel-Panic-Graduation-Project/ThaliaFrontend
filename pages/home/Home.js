@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from 'react';
+import { use, useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Alert, ScrollView, Image, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useTranslation } from "react-i18next";
 import { FontAwesome6 } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import apiClient from '../../utils/Backend';
 import { useUser } from '../../context/UserContext';
 import { useViewStyle } from '../../hooks/useViewStyle';
 import { Audio } from 'expo-av'; // Add this import
+import { useFocusEffect } from '@react-navigation/native';
 
 const Home = () => {
   const { t } = useTranslation();
@@ -98,7 +99,14 @@ const Home = () => {
     }
   };
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
+      fetchAudioFiles();
+      return () => {};
+    }, [])
+  );
+  
+  const fetchAudioFiles = () => {
     setIsLoadingAudios(true);
     apiClient.get("/api/audios/").then(response => {
       setAudios(response.data);
@@ -107,7 +115,7 @@ const Home = () => {
     }).finally(() => {
       setIsLoadingAudios(false);
     });
-  }, []);
+  };
 
   useEffect(() => {
     setIsLoadingThemes(true);
@@ -587,7 +595,6 @@ const Home = () => {
                             }
                           ]}
                           onPress={() => handleAudioPress(item)}
-                          disabled={loadingAudioId !== null}
                         >
                           <TouchableOpacity
                             style={[
